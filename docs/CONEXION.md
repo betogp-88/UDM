@@ -33,7 +33,7 @@ abro yo. Vercel debe desplegar desde `main`.
    (es una app interna; las altas las haces tu).
 5. Authentication → URL Configuration:
    - Site URL: la URL de produccion de Vercel (paso 3)
-   - Redirect URLs: agrega `https://TU-DOMINIO.vercel.app/**` y `http://localhost:3000/**`
+   - Redirect URLs: agrega `https://udm-ashy.vercel.app/**` y `http://localhost:3000/**`
 
 > Las llaves nunca se commitean. Van en `.env.local` (local) y en las variables
 > de entorno de Vercel (nube).
@@ -58,7 +58,7 @@ abro yo. Vercel debe desplegar desde `main`.
 
 ### Comprobacion
 
-Abre `https://TU-DOMINIO.vercel.app/api/health`. Debe responder:
+Abre <https://udm-ashy.vercel.app/api/health>. Debe responder:
 
 ```json
 { "status": "ok", "supabase": { "configured": true, "reachable": true } }
@@ -112,3 +112,28 @@ repo y queda en el historial.
 - [ ] `/api/health` responde `configured: true, reachable: true`
 - [ ] GitHub conectado en Claude y app instalada en el repo
 - [ ] App de Vercel instalada en el celular
+
+
+---
+
+## Estado actual (15 sep 2026)
+
+| Pieza | Estado |
+|---|---|
+| GitHub `betogp-88/UDM`, rama `main` | listo |
+| Vercel, proyecto `udm` | listo — <https://udm-ashy.vercel.app> |
+| Supabase `udm-sofom` | creado y conectado |
+| `/api/health` | `configured: true, reachable: true` |
+| Migracion inicial (`profiles`) | **pendiente** |
+| `NEXT_PUBLIC_SITE_URL` en Vercel | **pendiente** |
+| Site URL en Supabase Auth | **pendiente** |
+
+### Nota sobre las llaves de Supabase
+
+El proyecto usa el formato nuevo de llaves. La equivalencia con los nombres
+de las variables (que conservan el nombre clasico) es:
+
+| Panel de Supabase | Variable |
+|---|---|
+| Publishable key (`sb_publishable_...`) | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Secret key (`sb_secret_...`) | `SUPABASE_SERVICE_ROLE_KEY` |
