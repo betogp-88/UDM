@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Tarjeta, Insignia, Etiqueta } from "@/components/ui";
 import { pesos, pct } from "@/lib/formato";
 import { interesMoratorio } from "@/lib/demo/calculos";
@@ -75,7 +76,11 @@ export default function Cartera() {
                     key={c.id}
                     className="border-b border-[var(--hair)] last:border-0 hover:bg-[var(--plane)]"
                   >
-                    <td className="px-4 py-2.5 text-ink sm:px-2">{c.cliente}</td>
+                    <td className="px-4 py-2.5 sm:px-2">
+                      <Link href={`/cartera/${c.id}`} className="text-ink hover:underline">
+                        {c.cliente}
+                      </Link>
+                    </td>
                     <td className="px-2 py-2.5">
                       <Etiqueta>{c.tipoCredito}</Etiqueta>
                     </td>

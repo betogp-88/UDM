@@ -12,12 +12,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className="min-h-screen">
-        <div className="bg-[var(--warning)] px-4 py-1.5 text-center text-xs font-medium text-[#3a2a00]">
+        <div className="no-imprimir bg-[var(--warning)] px-4 py-1.5 text-center text-xs font-medium text-[#3a2a00]">
           Datos de demostración — personas, montos y fechas ficticios
         </div>
 
         {/* El logotipo siempre sobre blanco, como en el sitio */}
-        <header className="border-b border-[var(--hair)] bg-[var(--brand-bar)]">
+        <header className="no-imprimir border-b border-[var(--hair)] bg-[var(--brand-bar)]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <Image
               src="/logo.png"
@@ -33,11 +33,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        <Navegacion />
+        <div className="no-imprimir">
+          <Navegacion />
+        </div>
 
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
 
-        <footer className="mx-auto max-w-6xl px-4 pb-10 text-xs text-muted sm:px-6">
+        <footer className="no-imprimir mx-auto max-w-6xl px-4 pb-10 text-xs text-muted sm:px-6">
           Prototipo para revisión interna. Los cálculos de interés, retención y amortización usan
           las fórmulas reales; los datos son ficticios.
         </footer>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Tarjeta, Insignia, Etiqueta } from "@/components/ui";
+import { ListaRequisitos } from "@/components/ListaRequisitos";
 import { pct } from "@/lib/formato";
 import {
   INVERSIONISTAS,
@@ -7,6 +8,8 @@ import {
   estadoExpediente,
   REQUISITOS_FISICA,
   REQUISITOS_MORAL,
+  REQUISITOS_CREDITO_FISICA,
+  REQUISITOS_CREDITO_MORAL,
 } from "@/lib/demo/datos";
 
 export default function Expedientes() {
@@ -56,11 +59,32 @@ export default function Expedientes() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Tarjeta titulo="Requisitos · persona física">
-          <Lista items={REQUISITOS_FISICA} />
+        <Tarjeta
+          titulo="Requisitos para invertir"
+          descripcion="Cópialos o compártelos con el prospecto"
+        >
+          <ListaRequisitos
+            titulo="Requisitos para abrir una inversión"
+            grupos={[
+              { clave: "fisica", etiqueta: "Persona física", items: REQUISITOS_FISICA },
+              { clave: "moral", etiqueta: "Persona moral", items: REQUISITOS_MORAL },
+            ]}
+            cierre="Sin el expediente completo no podemos recibir los recursos."
+          />
         </Tarjeta>
-        <Tarjeta titulo="Requisitos · persona moral">
-          <Lista items={REQUISITOS_MORAL} />
+
+        <Tarjeta
+          titulo="Requisitos para crédito"
+          descripcion="Cópialos o compártelos con el prospecto"
+        >
+          <ListaRequisitos
+            titulo="Requisitos para solicitar un crédito"
+            grupos={[
+              { clave: "fisica", etiqueta: "Persona física", items: REQUISITOS_CREDITO_FISICA },
+              { clave: "moral", etiqueta: "Persona moral", items: REQUISITOS_CREDITO_MORAL },
+            ]}
+            cierre="El expediente completo es requisito para la ministración de los recursos."
+          />
         </Tarjeta>
       </div>
 
@@ -125,18 +149,5 @@ export default function Expedientes() {
         </div>
       </Tarjeta>
     </div>
-  );
-}
-
-function Lista({ items }: { items: string[] }) {
-  return (
-    <ol className="space-y-1.5 text-sm text-ink-2">
-      {items.map((r, k) => (
-        <li key={r} className="flex gap-2">
-          <span className="w-4 shrink-0 text-right text-xs tabular text-muted">{k + 1}</span>
-          {r}
-        </li>
-      ))}
-    </ol>
   );
 }

@@ -10,6 +10,7 @@ const RUTAS = [
   { href: "/cartera", etiqueta: "Cartera" },
   { href: "/calendario", etiqueta: "Calendario" },
   { href: "/calce", etiqueta: "Calce" },
+  { href: "/tesoreria", etiqueta: "Tesorería" },
   { href: "/expedientes", etiqueta: "Expedientes" },
   { href: "/socios", etiqueta: "Socios" },
 ];

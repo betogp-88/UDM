@@ -580,3 +580,137 @@ export function captacionDirecta(): number {
 export function carteraSinOrigen(): number {
   return CREDITOS.filter((c) => !socioDeCredito(c)).reduce((s, c) => s + c.saldo, 0);
 }
+
+/* ------------------------------------------------------------------ */
+/* TESORERIA                                                           */
+/* ------------------------------------------------------------------ */
+
+export type CuentaBancaria = {
+  id: string;
+  banco: string;
+  empresa: Empresa;
+  clabe: string;
+  saldo: number;
+};
+
+export const CUENTAS: CuentaBancaria[] = [
+  { id: "cta-1", banco: "BBVA", empresa: "SOFOM", clabe: "0125 8000 1234 5678 90", saldo: 2_430_000 },
+  { id: "cta-2", banco: "Banorte", empresa: "Arrendadora", clabe: "0725 8000 9876 5432 10", saldo: 1_180_000 },
+];
+
+export type InversionTesoreria = {
+  id: string;
+  emisor: string;
+  instrumento: "Tesofome" | "Pagaré bancario" | "CETES";
+  empresa: Empresa;
+  monto: number;
+  tasaAnual: number;
+  mesesRestantes: number;
+  /** Tasa anual de retencion que nos aplican a nosotros. */
+  retencionAnual: number;
+};
+
+export const TESORERIA: InversionTesoreria[] = [
+  { id: "tes-1", emisor: "SOFOM Crédito Regional SA", instrumento: "Tesofome", empresa: "SOFOM", monto: 1_500_000, tasaAnual: 0.155, mesesRestantes: 5, retencionAnual: 0.009 },
+  { id: "tes-2", emisor: "Financiera del Valle SAPI", instrumento: "Tesofome", empresa: "SOFOM", monto: 900_000, tasaAnual: 0.162, mesesRestantes: 8, retencionAnual: 0.009 },
+  { id: "tes-3", emisor: "BBVA México", instrumento: "Pagaré bancario", empresa: "SOFOM", monto: 600_000, tasaAnual: 0.098, mesesRestantes: 1, retencionAnual: 0.009 },
+  { id: "tes-4", emisor: "Banco de México", instrumento: "CETES", empresa: "Arrendadora", monto: 450_000, tasaAnual: 0.102, mesesRestantes: 3, retencionAnual: 0.009 },
+];
+
+export function rendimientoTesoreriaMensual(): number {
+  return TESORERIA.reduce((s, t) => s + (t.monto * t.tasaAnual) / 12, 0);
+}
+
+export function retencionTesoreriaMensual(): number {
+  return TESORERIA.reduce((s, t) => s + (t.monto * t.retencionAnual) / 12, 0);
+}
+
+export function totalTesoreria(): number {
+  return TESORERIA.reduce((s, t) => s + t.monto, 0);
+}
+
+export function efectivoDisponible(): number {
+  return CUENTAS.reduce((s, c) => s + c.saldo, 0);
+}
+
+export type Gasto = { categoria: string; monto: number; recurrente: boolean };
+
+export const GASTOS: Gasto[] = [
+  { categoria: "Nómina y honorarios", monto: 82_000, recurrente: true },
+  { categoria: "Renta de oficina", monto: 24_000, recurrente: true },
+  { categoria: "Servicios y sistemas", monto: 14_500, recurrente: true },
+  { categoria: "Contabilidad y auditoría", monto: 12_000, recurrente: true },
+  { categoria: "Legal y notarial", monto: 9_500, recurrente: false },
+  { categoria: "Gastos de cobranza", monto: 6_000, recurrente: false },
+];
+
+/* ------------------------------------------------------------------ */
+/* DETALLE DE CREDITO                                                  */
+/* ------------------------------------------------------------------ */
+
+/** Comision de apertura vigente. */
+export const COMISION_APERTURA = 0.02;
+
+export type Garantia = { tipo: string; descripcion: string; valor?: number };
+
+/** Garantias y activo arrendado, por posicion en CREDITOS. */
+const DETALLE_CREDITO: Array<{ garantias: Garantia[]; activo?: string; seguroVigente?: boolean }> = [
+  { garantias: [{ tipo: "Obligado solidario", descripcion: "Accionista mayoritario" }, { tipo: "Prenda industrial", descripcion: "Línea de corte", valor: 5_200_000 }] },
+  { garantias: [{ tipo: "Aval", descripcion: "Representante legal" }], activo: "Tractocamión Kenworth T680 · serie 1XKY", seguroVigente: true },
+  { garantias: [{ tipo: "Hipoteca", descripcion: "Nave industrial", valor: 6_000_000 }] },
+  { garantias: [{ tipo: "Obligado solidario", descripcion: "Socio fundador" }] },
+  { garantias: [{ tipo: "Depósito en garantía", descripcion: "Tres rentas" }], activo: "Excavadora CAT 320 · serie CAT0320", seguroVigente: false },
+  { garantias: [{ tipo: "Aval", descripcion: "Director general" }] },
+  { garantias: [{ tipo: "Aval", descripcion: "Socio de la sociedad civil" }], activo: "Equipo de rayos X · serie MED-8841", seguroVigente: true },
+  { garantias: [{ tipo: "Obligado solidario", descripcion: "Propietario" }] },
+  { garantias: [{ tipo: "Prenda agrícola", descripcion: "Cosecha comprometida", valor: 2_100_000 }] },
+  { garantias: [{ tipo: "Depósito en garantía", descripcion: "Dos rentas" }], activo: "Cámara de refrigeración · serie REF-2210", seguroVigente: true },
+];
+
+export function detalleCredito(c: Credito) {
+  const k = CREDITOS.findIndex((x) => x.id === c.id);
+  return (
+    DETALLE_CREDITO[k % DETALLE_CREDITO.length] ?? { garantias: [] as Garantia[] }
+  );
+}
+
+export function buscarCredito(id: string): Credito | undefined {
+  return CREDITOS.find((c) => c.id === id);
+}
+
+export const REQUISITOS_CREDITO_FISICA = [
+  "Identificación oficial vigente",
+  "CURP",
+  "Constancia de situación fiscal",
+  "Comprobante de domicilio (menor a 3 meses)",
+  "Estados de cuenta bancarios (6 meses)",
+  "Comprobante de ingresos",
+  "Autorización de consulta a buró de crédito",
+  "Contrato y pagaré firmados",
+];
+
+export const REQUISITOS_CREDITO_MORAL = [
+  "Acta constitutiva",
+  "Poder del representante legal",
+  "Identificación del representante legal",
+  "Constancia de situación fiscal",
+  "Comprobante de domicilio fiscal",
+  "Estados financieros (2 ejercicios)",
+  "Estados de cuenta bancarios (6 meses)",
+  "Autorización de consulta a buró de crédito",
+  "Declaración de beneficiario controlador",
+  "Contrato y pagaré firmados",
+];
+
+/** Estado del expediente de un credito, determinista. */
+export function expedienteCredito(c: Credito): { requisitos: string[]; cumplidos: boolean[] } {
+  const esMoral = /SA|SC|SPR|SAPI|de CV|RL/.test(c.cliente);
+  const requisitos = esMoral ? REQUISITOS_CREDITO_MORAL : REQUISITOS_CREDITO_FISICA;
+  const semilla = Number(c.id.slice(-2));
+  // Los contratos vigentes traen expediente completo; los de mayor atraso, no.
+  const completo = c.diasAtraso <= 30;
+  return {
+    requisitos,
+    cumplidos: requisitos.map((_, k) => completo || (k + semilla) % 5 !== 0),
+  };
+}

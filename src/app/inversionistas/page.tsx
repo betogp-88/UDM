@@ -16,6 +16,16 @@ export default function Inversionistas() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold text-ink">Inversionistas</h2>
+        <Link
+          href="/alta"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-[var(--brand-ink)]"
+        >
+          + Nuevo inversionista
+        </Link>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Dato etiqueta="Capital captado" valor={pesos(totalCaptado())} />
         <Dato etiqueta="Contratos" valor={String(INVERSIONISTAS.length)} />

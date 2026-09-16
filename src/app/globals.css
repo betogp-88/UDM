@@ -85,3 +85,20 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+
+/* Al imprimir un estado de cuenta queda solo la hoja. */
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}

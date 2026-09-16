@@ -38,10 +38,18 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         <Link href="/inversionistas" className="text-xs text-muted hover:text-ink">
           ← Inversionistas
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h2 className="text-2xl font-semibold text-ink">{inv.nombre}</h2>
-          <Etiqueta>{inv.tipo}</Etiqueta>
-          <Etiqueta>{inv.empresa}</Etiqueta>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-2xl font-semibold text-ink">{inv.nombre}</h2>
+            <Etiqueta>{inv.tipo}</Etiqueta>
+            <Etiqueta>{inv.empresa}</Etiqueta>
+          </div>
+          <Link
+            href={`/inversionistas/${inv.id}/estado`}
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-[var(--brand-ink)]"
+          >
+            Estado de cuenta
+          </Link>
         </div>
       </div>
 
