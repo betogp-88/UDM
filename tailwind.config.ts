@@ -16,6 +16,9 @@ export default {
         // Marca (placeholder hasta tener la identidad de Un Digito Mas)
         brand: "var(--brand)",
         "brand-ink": "var(--brand-ink)",
+        "brand-accent": "var(--brand-accent)",
+        "brand-soft": "var(--brand-soft)",
+        "brand-bar": "var(--brand-bar)",
         // Series de graficas — paleta validada
         s1: "var(--s1)",
         s2: "var(--s2)",

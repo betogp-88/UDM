@@ -56,7 +56,7 @@ export default function Calendario() {
         <p className="mt-1 text-sm text-ink-2">Lo que entra y lo que sale este mes.</p>
       </header>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Dato etiqueta="Entra" valor={pesos(totalEntra)} color="var(--s1)" />
         <Dato etiqueta="Sale" valor={pesos(totalSale)} color="var(--s2)" />
         <Dato
@@ -127,12 +127,12 @@ export default function Calendario() {
 
 function Dato({ etiqueta, valor, color }: { etiqueta: string; valor: string; color: string }) {
   return (
-    <div className="rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)]">
+    <div className="min-w-0 rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)]">
       <p className="flex items-center gap-1.5 text-xs text-ink-2">
         <span className="h-2 w-2 rounded-sm" style={{ background: color }} aria-hidden />
         {etiqueta}
       </p>
-      <p className="mt-1 text-xl font-semibold text-ink">{valor}</p>
+      <p className="mt-1 truncate text-xl font-semibold text-ink">{valor}</p>
     </div>
   );
 }

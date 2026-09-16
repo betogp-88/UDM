@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Navegacion } from "@/components/Navegacion";
 import "./globals.css";
 
@@ -15,13 +16,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Datos de demostración — personas, montos y fechas ficticios
         </div>
 
-        <header className="bg-brand text-[var(--brand-ink)]">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] opacity-70">SOFOM · Arrendadora</p>
-              <h1 className="text-lg font-semibold">Un Dígito Más</h1>
-            </div>
-            <p className="hidden text-xs opacity-70 sm:block">Prototipo</p>
+        {/* El logotipo siempre sobre blanco, como en el sitio */}
+        <header className="border-b border-[var(--hair)] bg-[var(--brand-bar)]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <Image
+              src="/logo.png"
+              alt="Un Dígito Más"
+              width={907}
+              height={504}
+              priority
+              className="h-10 w-auto sm:h-12"
+            />
+            <p className="text-right text-[11px] uppercase tracking-[0.16em] text-[#13314d]/70">
+              SOFOM · Arrendadora
+            </p>
           </div>
         </header>
 

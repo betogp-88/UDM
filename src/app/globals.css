@@ -13,9 +13,12 @@
   --grid: #e1e0d9;
   --hair: rgba(11, 11, 11, 0.1);
 
-  /* Marca — placeholder. Sustituir por la identidad de Un Digito Mas. */
-  --brand: #0f3d2e;
+  /* Marca Un Dígito Más, tomada del logotipo y del sitio */
+  --brand: #13314d;        /* azul marino de los recuadros del logo */
   --brand-ink: #ffffff;
+  --brand-accent: #10befe; /* azul del signo + */
+  --brand-soft: #87cdea;   /* celeste de los botones */
+  --brand-bar: #ffffff;    /* la barra del logo siempre va sobre blanco */
 
   /* Series de graficas — validadas para superficie clara */
   --s1: #2a78d6;
@@ -40,8 +43,11 @@
     --grid: #2c2c2a;
     --hair: rgba(255, 255, 255, 0.1);
 
-    --brand: #10402f;
-    --brand-ink: #ffffff;
+    --brand: #87cdea;
+    --brand-ink: #0b1a2a;
+    --brand-accent: #10befe;
+    --brand-soft: #87cdea;
+    --brand-bar: #ffffff;
 
     /* Mismos tonos, escalonados para superficie oscura */
     --s1: #3987e5;
@@ -58,8 +64,11 @@
   --muted: #898781;
   --grid: #2c2c2a;
   --hair: rgba(255, 255, 255, 0.1);
-  --brand: #10402f;
-  --brand-ink: #ffffff;
+  --brand: #87cdea;
+  --brand-ink: #0b1a2a;
+  --brand-accent: #10befe;
+  --brand-soft: #87cdea;
+  --brand-bar: #ffffff;
   --s1: #3987e5;
   --s2: #d95926;
 }
@@ -70,7 +79,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Columnas de numeros alineadas; los valores grandes usan figuras proporcionales. */
+/* Columnas de numeros alineadas; los valores grandes usan figuras proporcionales.
+   Un numero nunca parte de renglon: "−$1,500.00" se queda entero. */
 .tabular {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

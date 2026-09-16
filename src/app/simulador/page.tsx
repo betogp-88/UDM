@@ -97,7 +97,7 @@ export default function Simulador() {
           </div>
         </Tarjeta>
 
-        <div className="lg:col-span-3">
+        <div className="min-w-0 lg:col-span-3">
           {modo === "inversion" ? (
             <ResultadoInversion monto={monto} tasa={tasa / 100} plazo={plazo} inicio={inicio} />
           ) : (
@@ -133,7 +133,7 @@ function ResultadoInversion({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Resumen etiqueta="Rendimiento mensual" valor={pesosCent(flujos[0].neto)} />
         <Resumen etiqueta="Rendimiento neto total" valor={pesos(netoTotal)} />
         <Resumen etiqueta="Retención total" valor={pesos(retencionTotal)} />
@@ -201,7 +201,7 @@ function ResultadoCredito({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Resumen etiqueta="Mensualidad" valor={pesosCent(cuota)} />
         <Resumen etiqueta="Interés total" valor={pesos(interesTotal)} />
         <Resumen etiqueta="Tasa moratoria" valor={pct(moratoria)} />
@@ -252,9 +252,9 @@ function ResultadoCredito({
 
 function Resumen({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
-    <div className="rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)]">
+    <div className="min-w-0 rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)]">
       <p className="text-xs text-ink-2">{etiqueta}</p>
-      <p className="mt-1 text-lg font-semibold text-ink sm:text-xl">{valor}</p>
+      <p className="mt-1 truncate text-lg font-semibold text-ink sm:text-xl">{valor}</p>
     </div>
   );
 }

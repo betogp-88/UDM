@@ -13,7 +13,9 @@ export function Tarjeta({
 }) {
   return (
     <section
-      className={`rounded-xl bg-surface p-4 sm:p-5 ring-1 ring-[var(--hair)] ${className}`}
+      // min-w-0: sin esto, un hijo de grid no puede encogerse por debajo de su
+      // contenido y empuja el ancho de la pagina en pantallas angostas.
+      className={`min-w-0 rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)] sm:p-5 ${className}`}
     >
       {titulo ? (
         <header className="mb-4">
