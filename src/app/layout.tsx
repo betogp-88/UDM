@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "UDM · Plataforma interna",
+  title: "UDM · Sistema de gestión",
   description: "Aplicacion interna de la SOFOM",
 };
 

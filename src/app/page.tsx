@@ -7,7 +7,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-4 py-16">
       <header>
         <p className="text-sm font-medium uppercase tracking-widest text-brand-accent">SOFOM</p>
-        <h1 className="mt-1 text-3xl font-semibold">UDM · Plataforma interna</h1>
+        <h1 className="mt-1 text-3xl font-semibold">UDM · Sistema de gestión</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">
           Andamiaje inicial. La funcionalidad del negocio se define en el siguiente paso.
         </p>
