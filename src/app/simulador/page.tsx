@@ -7,14 +7,26 @@ import { tablaInversion, tablaCredito, tasaRetencion } from "@/lib/demo/calculos
 
 type Modo = "inversion" | "credito";
 
+/** Rangos de tasa con los que opera la casa hoy. */
+const RANGO_INVERSION = { min: 10, max: 18 };
+const RANGO_CREDITO = { min: 18, max: 35 };
+
 export default function Simulador() {
   const [modo, setModo] = useState<Modo>("inversion");
   const [monto, setMonto] = useState(2_000_000);
-  const [tasa, setTasa] = useState(18);
+  const [tasa, setTasa] = useState(13);
   const [plazo, setPlazo] = useState(18);
   const [gracia, setGracia] = useState(0);
 
   const inicio = useMemo(() => new Date(), []);
+  const rango = modo === "inversion" ? RANGO_INVERSION : RANGO_CREDITO;
+
+  /** Al cambiar de modo, la tasa entra al rango del nuevo producto. */
+  function cambiarModo(nuevo: Modo) {
+    const r = nuevo === "inversion" ? RANGO_INVERSION : RANGO_CREDITO;
+    setTasa((t) => Math.min(Math.max(t, r.min), r.max));
+    setModo(nuevo);
+  }
 
   return (
     <div className="space-y-6">
@@ -31,7 +43,7 @@ export default function Simulador() {
           <button
             key={m}
             type="button"
-            onClick={() => setModo(m)}
+            onClick={() => cambiarModo(m)}
             className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
               modo === m ? "bg-brand text-[var(--brand-ink)]" : "text-ink-2 hover:text-ink"
             }`}
@@ -54,10 +66,10 @@ export default function Simulador() {
               onChange={setMonto}
             />
             <Campo
-              etiqueta="Tasa anual"
+              etiqueta={modo === "inversion" ? "Tasa de rendimiento" : "Tasa de interés"}
               valor={tasa}
-              min={modo === "inversion" ? 8 : 15}
-              max={modo === "inversion" ? 28 : 45}
+              min={rango.min}
+              max={rango.max}
               paso={0.5}
               formato={(v) => `${v.toFixed(1)}%`}
               onChange={setTasa}
