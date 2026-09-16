@@ -11,6 +11,7 @@ import {
   mesesPagados,
   requisitosDe,
   estadoExpediente,
+  socioDeInversionista,
 } from "@/lib/demo/datos";
 
 export function generateStaticParams() {
@@ -27,6 +28,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
   const interesPagado = flujos.slice(0, pagados).reduce((s, f) => s + f.neto, 0);
   const interesPorPagar = flujos.slice(pagados).reduce((s, f) => s + f.neto, 0);
   const retencionAcumulada = flujos.slice(0, pagados).reduce((s, f) => s + f.retencion, 0);
+  const socio = socioDeInversionista(inv);
   const requisitos = requisitosDe(inv.tipo);
   const cumplidos = estadoExpediente(inv);
 
@@ -60,6 +62,7 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <Renglon k="Retención mensual" v={pesosCent(flujos[0].retencion)} />
             <Renglon k="Neto mensual" v={pesosCent(flujos[0].neto)} destacado />
             <Renglon k="Retención acumulada" v={pesos(retencionAcumulada)} />
+            <Renglon k="Traído por" v={socio ? socio.nombre : "Llegó directo"} />
           </dl>
           <p className="mt-4 border-t border-[var(--hair)] pt-3 text-xs text-muted">
             La retención se calcula sobre el capital a la tasa anual del año de cada pago, no sobre

@@ -10,6 +10,7 @@ import {
   ESTADO_BUCKET,
   mensualidadCredito,
   interesCobradoMensual,
+  socioDeCredito,
 } from "@/lib/demo/datos";
 
 export default function Cartera() {
@@ -47,7 +48,7 @@ export default function Cartera() {
 
       <Tarjeta titulo="Contratos" descripcion="Los de mayor atraso primero">
         <div className="-mx-4 overflow-x-auto sm:mx-0">
-          <table className="w-full min-w-[820px] text-sm">
+          <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
                 <th className="px-4 py-2 font-medium sm:px-2">Cliente</th>
@@ -57,12 +58,14 @@ export default function Cartera() {
                 <th className="px-2 py-2 text-right font-medium">Mensualidad</th>
                 <th className="px-2 py-2 text-right font-medium">Plazo</th>
                 <th className="px-2 py-2 text-right font-medium">Moratorios</th>
+                <th className="px-2 py-2 font-medium">Originado por</th>
                 <th className="px-2 py-2 font-medium">Estado</th>
               </tr>
             </thead>
             <tbody>
               {orden.map((c) => {
                 const b = bucket(c);
+                const socio = socioDeCredito(c);
                 const cuota = mensualidadCredito(c);
                 const mora = c.diasAtraso
                   ? interesMoratorio(cuota, c.tasaAnual, c.diasAtraso)
@@ -87,6 +90,13 @@ export default function Cartera() {
                         <span style={{ color: "var(--critical)" }}>{pesos(mora)}</span>
                       ) : (
                         <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2.5 text-xs">
+                      {socio ? (
+                        <span className="text-ink-2">{socio.nombre.split(" ").slice(0, 2).join(" ")}</span>
+                      ) : (
+                        <span className="text-muted">Operación</span>
                       )}
                     </td>
                     <td className="px-2 py-2.5">

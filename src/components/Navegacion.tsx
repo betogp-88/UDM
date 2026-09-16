@@ -11,6 +11,7 @@ const RUTAS = [
   { href: "/calendario", etiqueta: "Calendario" },
   { href: "/calce", etiqueta: "Calce" },
   { href: "/expedientes", etiqueta: "Expedientes" },
+  { href: "/socios", etiqueta: "Socios" },
 ];
 
 export function Navegacion() {

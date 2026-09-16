@@ -6,6 +6,7 @@ import {
   totalCaptado,
   tasaPasivaPromedio,
   vencimientoInversion,
+  socioDeInversionista,
   interesPagadoMensual,
   retencionMensual,
 } from "@/lib/demo/datos";
@@ -27,7 +28,7 @@ export default function Inversionistas() {
         descripcion={`Ordenados por vencimiento más próximo · retención mensual ${pesos(retencionMensual())}`}
       >
         <div className="-mx-4 overflow-x-auto sm:mx-0">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
                 <th className="px-4 py-2 font-medium sm:px-2">Inversionista</th>
@@ -36,11 +37,13 @@ export default function Inversionistas() {
                 <th className="px-2 py-2 text-right font-medium">Tasa</th>
                 <th className="px-2 py-2 text-right font-medium">Rendimiento neto mensual</th>
                 <th className="px-2 py-2 font-medium">Vence</th>
+                <th className="px-2 py-2 font-medium">Traído por</th>
                 <th className="px-2 py-2 font-medium">Expediente</th>
               </tr>
             </thead>
             <tbody>
               {orden.map((i) => {
+                const socio = socioDeInversionista(i);
                 const interes = (i.capital * i.tasaAnual) / 12;
                 const retencion = (i.capital * 0.009) / 12;
                 const proximo = i.mesesRestantes <= 2;
@@ -71,6 +74,13 @@ export default function Inversionistas() {
                         {i.mesesRestantes} {i.mesesRestantes === 1 ? "mes" : "meses"}
                       </span>
                     </td>
+                    <td className="px-2 py-2.5 text-xs">
+                      {socio ? (
+                        <span className="text-ink-2">{socio.nombre.split(" ").slice(0, 2).join(" ")}</span>
+                      ) : (
+                        <span className="text-muted">Directo</span>
+                      )}
+                    </td>
                     <td className="px-2 py-2.5">
                       {i.expedienteCompleto ? (
                         <Insignia estado="good">Completo</Insignia>
@@ -94,7 +104,7 @@ export default function Inversionistas() {
                 <td className="px-2 py-2.5 text-right tabular text-ink">
                   {pesos(interesPagadoMensual() - retencionMensual())}
                 </td>
-                <td colSpan={2} />
+                <td colSpan={3} />
               </tr>
             </tfoot>
           </table>

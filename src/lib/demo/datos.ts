@@ -423,3 +423,160 @@ export function estadoExpediente(inv: Inversionista): boolean[] {
   const semilla = Number(inv.id.slice(-2));
   return reqs.map((_, k) => (k + semilla) % 4 !== 0);
 }
+
+/* ------------------------------------------------------------------ */
+/* SOCIOS Y ATRIBUCION                                                 */
+/* ------------------------------------------------------------------ */
+
+export type Socio = {
+  id: string;
+  nombre: string;
+  participacion: number;
+  aportacion: number;
+  /** Contrato de inversion propio, si el socio ademas tiene dinero adentro. */
+  inversionPropiaId?: string;
+  enTesoreria?: boolean;
+};
+
+/** Capital social pagado. */
+export const CAPITAL_SOCIAL = 6_000_000;
+
+export const SOCIOS: Socio[] = [
+  {
+    id: "soc-1",
+    nombre: "Martina Elizondo Ruvalcaba",
+    participacion: 0.2,
+    aportacion: 1_200_000,
+    inversionPropiaId: "inv-01",
+  },
+  {
+    id: "soc-2",
+    nombre: "Rodolfo Cantú Villarreal",
+    participacion: 0.2,
+    aportacion: 1_200_000,
+    inversionPropiaId: "inv-03",
+  },
+  {
+    id: "soc-3",
+    nombre: "Ignacio Peralta Loredo",
+    participacion: 0.2,
+    aportacion: 1_200_000,
+    inversionPropiaId: "inv-07",
+  },
+  {
+    id: "soc-4",
+    nombre: "Efraín Quintanilla Mora",
+    participacion: 0.2,
+    aportacion: 1_200_000,
+    inversionPropiaId: "inv-10",
+  },
+  {
+    id: "soc-tes",
+    nombre: "Tesorería (por vender)",
+    participacion: 0.2,
+    aportacion: 1_200_000,
+    enTesoreria: true,
+  },
+];
+
+/**
+ * Quien trajo a cada inversionista, en el mismo orden que INVERSIONISTAS.
+ * null = llego directo, sin que lo trajera un socio.
+ */
+const ATRIBUCION_INV: Array<string | null> = [
+  "soc-1", "soc-2", "soc-2", "soc-1", "soc-3",
+  "soc-4", "soc-3", "soc-1", "soc-2", "soc-4",
+  "soc-1", "soc-2", "soc-4", "soc-3", "soc-1",
+  null, "soc-2", "soc-4", "soc-3", "soc-4",
+];
+
+/** Quien origino cada credito, en el mismo orden que CREDITOS. */
+const ATRIBUCION_CRE: Array<string | null> = [
+  "soc-1", "soc-2", "soc-1", "soc-3", "soc-4",
+  "soc-2", "soc-1", "soc-4", "soc-3", "soc-2",
+  "soc-1", "soc-4", "soc-3", "soc-2", "soc-1",
+  null, "soc-4", "soc-3", "soc-2", "soc-1",
+  "soc-3", "soc-4", "soc-2", "soc-1", "soc-3",
+  null, "soc-4", "soc-2", "soc-1", null,
+];
+
+export function socioDeInversionista(inv: Inversionista): Socio | undefined {
+  const k = INVERSIONISTAS.findIndex((x) => x.id === inv.id);
+  const id = ATRIBUCION_INV[k];
+  return id ? SOCIOS.find((s) => s.id === id) : undefined;
+}
+
+export function socioDeCredito(c: Credito): Socio | undefined {
+  const k = CREDITOS.findIndex((x) => x.id === c.id);
+  const id = ATRIBUCION_CRE[k];
+  return id ? SOCIOS.find((s) => s.id === id) : undefined;
+}
+
+export function buscarSocio(id: string): Socio | undefined {
+  return SOCIOS.find((s) => s.id === id);
+}
+
+export type ResumenSocio = {
+  socio: Socio;
+  /** Dinero propio del socio invertido en la casa. */
+  directo: number;
+  rendimientoPropio: number;
+  /** Dinero de terceros que el socio trajo. */
+  indirecto: number;
+  inversionistasTraidos: number;
+  /** Cartera que el socio origino. */
+  carteraOriginada: number;
+  creditosOriginados: number;
+  /** Su parte del margen neto del mes. */
+  participacionMargen: number;
+  /** Rendimiento propio + participacion en el margen. */
+  retornoMensual: number;
+  /** Retorno anualizado sobre su aportacion de capital. */
+  retornoSobreAportacion: number;
+};
+
+export function resumenSocios(): ResumenSocio[] {
+  const margenNeto = cascadaMargen().at(-1)!.monto;
+
+  return SOCIOS.map((socio) => {
+    const propia = socio.inversionPropiaId
+      ? INVERSIONISTAS.find((i) => i.id === socio.inversionPropiaId)
+      : undefined;
+    const directo = propia?.capital ?? 0;
+    const rendimientoPropio = propia
+      ? (propia.capital * propia.tasaAnual) / 12 -
+        (propia.capital * tasaRetencion(HOY.getFullYear())) / 12
+      : 0;
+
+    const traidos = INVERSIONISTAS.filter(
+      (i) => socioDeInversionista(i)?.id === socio.id && i.id !== socio.inversionPropiaId,
+    );
+    const originados = CREDITOS.filter((c) => socioDeCredito(c)?.id === socio.id);
+
+    const participacionMargen = socio.enTesoreria ? 0 : margenNeto * socio.participacion;
+    const retornoMensual = rendimientoPropio + participacionMargen;
+
+    return {
+      socio,
+      directo,
+      rendimientoPropio,
+      indirecto: traidos.reduce((s, i) => s + i.capital, 0),
+      inversionistasTraidos: traidos.length,
+      carteraOriginada: originados.reduce((s, c) => s + c.saldo, 0),
+      creditosOriginados: originados.length,
+      participacionMargen,
+      retornoMensual,
+      retornoSobreAportacion:
+        socio.aportacion > 0 ? (participacionMargen * 12) / socio.aportacion : 0,
+    };
+  });
+}
+
+/** Captacion que no trajo ningun socio. */
+export function captacionDirecta(): number {
+  return INVERSIONISTAS.filter((i) => !socioDeInversionista(i)).reduce((s, i) => s + i.capital, 0);
+}
+
+export function carteraSinOrigen(): number {
+  return CREDITOS.filter((c) => !socioDeCredito(c)).reduce((s, c) => s + c.saldo, 0);
+}
