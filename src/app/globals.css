@@ -3,15 +3,74 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
-}
+  color-scheme: light;
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  --surface: #fcfcfb;
+  --plane: #f4f4f1;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --hair: rgba(11, 11, 11, 0.1);
+
+  /* Marca — placeholder. Sustituir por la identidad de Un Digito Mas. */
+  --brand: #0f3d2e;
+  --brand-ink: #ffffff;
+
+  /* Series de graficas — validadas para superficie clara */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+
+  /* Estatus — fijos, nunca tematizados */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-slate-950 text-slate-100;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --surface: #1a1a19;
+    --plane: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --hair: rgba(255, 255, 255, 0.1);
+
+    --brand: #10402f;
+    --brand-ink: #ffffff;
+
+    /* Mismos tonos, escalonados para superficie oscura */
+    --s1: #3987e5;
+    --s2: #d95926;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1a1a19;
+  --plane: #0d0d0d;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --hair: rgba(255, 255, 255, 0.1);
+  --brand: #10402f;
+  --brand-ink: #ffffff;
+  --s1: #3987e5;
+  --s2: #d95926;
+}
+
+body {
+  background: var(--plane);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Columnas de numeros alineadas; los valores grandes usan figuras proporcionales. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
