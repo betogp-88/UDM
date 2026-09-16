@@ -18,8 +18,8 @@ export default function Inversionistas() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Dato etiqueta="Capital captado" valor={pesos(totalCaptado())} />
         <Dato etiqueta="Contratos" valor={String(INVERSIONISTAS.length)} />
-        <Dato etiqueta="Tasa promedio" valor={pct(tasaPasivaPromedio())} />
-        <Dato etiqueta="Interés mensual" valor={pesos(interesPagadoMensual())} />
+        <Dato etiqueta="Rendimiento promedio" valor={pct(tasaPasivaPromedio())} />
+        <Dato etiqueta="Rendimiento bruto mensual" valor={pesos(interesPagadoMensual())} />
       </div>
 
       <Tarjeta
@@ -34,7 +34,7 @@ export default function Inversionistas() {
                 <th className="px-2 py-2 font-medium">Empresa</th>
                 <th className="px-2 py-2 text-right font-medium">Capital</th>
                 <th className="px-2 py-2 text-right font-medium">Tasa</th>
-                <th className="px-2 py-2 text-right font-medium">Interés neto mensual</th>
+                <th className="px-2 py-2 text-right font-medium">Rendimiento neto mensual</th>
                 <th className="px-2 py-2 font-medium">Vence</th>
                 <th className="px-2 py-2 font-medium">Expediente</th>
               </tr>

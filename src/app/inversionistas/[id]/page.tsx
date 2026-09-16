@@ -56,14 +56,14 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
             <Renglon k="Inicio" v={fecha(inicioInversion(inv))} />
             <Renglon k="Vencimiento" v={fecha(vencimientoInversion(inv))} />
             <Renglon k="Plazo" v={`${inv.plazoMeses} meses`} />
-            <Renglon k="Interés mensual" v={pesosCent(flujos[0].interes)} />
+            <Renglon k="Rendimiento mensual" v={pesosCent(flujos[0].interes)} />
             <Renglon k="Retención mensual" v={pesosCent(flujos[0].retencion)} />
             <Renglon k="Neto mensual" v={pesosCent(flujos[0].neto)} destacado />
             <Renglon k="Retención acumulada" v={pesos(retencionAcumulada)} />
           </dl>
           <p className="mt-4 border-t border-[var(--hair)] pt-3 text-xs text-muted">
             La retención se calcula sobre el capital a la tasa anual del año de cada pago, no sobre
-            el interés.
+            el rendimiento.
           </p>
         </Tarjeta>
 
@@ -90,14 +90,14 @@ export default async function Ficha({ params }: { params: Promise<{ id: string }
         </Tarjeta>
       </div>
 
-      <Tarjeta titulo="Tabla de pagos" descripcion="Interés mensual y capital al vencimiento">
+      <Tarjeta titulo="Tabla de pagos" descripcion="Rendimiento mensual y capital al vencimiento">
         <div className="-mx-4 overflow-x-auto sm:mx-0">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
                 <th className="px-4 py-2 font-medium sm:px-2">#</th>
                 <th className="px-2 py-2 font-medium">Fecha</th>
-                <th className="px-2 py-2 text-right font-medium">Interés</th>
+                <th className="px-2 py-2 text-right font-medium">Rendimiento</th>
                 <th className="px-2 py-2 text-right font-medium">Retención</th>
                 <th className="px-2 py-2 text-right font-medium">Capital</th>
                 <th className="px-2 py-2 text-right font-medium">Neto a pagar</th>

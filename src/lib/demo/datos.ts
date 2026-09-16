@@ -265,7 +265,7 @@ export function cascadaMargen() {
 
   return [
     { concepto: "Intereses cobrados", monto: cobrado, tipo: "suma" as const, acumulado: cobrado },
-    { concepto: "Intereses pagados", monto: -pagado, tipo: "resta" as const, acumulado: bruto },
+    { concepto: "Rendimientos pagados", monto: -pagado, tipo: "resta" as const, acumulado: bruto },
     { concepto: "Margen financiero bruto", monto: bruto, tipo: "subtotal" as const, acumulado: bruto },
     { concepto: "Gastos de operación", monto: -GASTO_OPERACION_MENSUAL, tipo: "resta" as const, acumulado: despuesGastos },
     { concepto: "Estimación de incobrables", monto: -ESTIMACION_INCOBRABLES_MENSUAL, tipo: "resta" as const, acumulado: neto },

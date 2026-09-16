@@ -97,7 +97,7 @@ export default function Calendario() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-ink">{s.nombre}</span>
                   <span className="text-xs text-muted">
-                    {s.vence ? "Interés + devolución de capital" : `Interés neto · ${s.etiqueta}`}
+                    {s.vence ? "Rendimiento + devolución de capital" : `Rendimiento neto · ${s.etiqueta}`}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">

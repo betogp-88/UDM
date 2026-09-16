@@ -122,7 +122,7 @@ function ResultadoInversion({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <Resumen etiqueta="Neto mensual" valor={pesosCent(flujos[0].neto)} />
+        <Resumen etiqueta="Rendimiento mensual" valor={pesosCent(flujos[0].neto)} />
         <Resumen etiqueta="Rendimiento neto total" valor={pesos(netoTotal)} />
         <Resumen etiqueta="Retención total" valor={pesos(retencionTotal)} />
       </div>
@@ -138,7 +138,7 @@ function ResultadoInversion({
               <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
                 <th className="px-4 py-2 font-medium sm:px-2">#</th>
                 <th className="px-2 py-2 font-medium">Fecha</th>
-                <th className="px-2 py-2 text-right font-medium">Interés</th>
+                <th className="px-2 py-2 text-right font-medium">Rendimiento</th>
                 <th className="px-2 py-2 text-right font-medium">Retención</th>
                 <th className="px-2 py-2 text-right font-medium">Capital</th>
                 <th className="px-2 py-2 text-right font-medium">Total</th>
