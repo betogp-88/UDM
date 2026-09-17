@@ -24,6 +24,14 @@
   --s1: #2a78d6;
   --s2: #eb6834;
 
+
+  /* Rampa ordinal del embudo: un solo tono, de claro a oscuro. Validada. */
+  --f1: #86b6ef;
+  --f2: #5598e7;
+  --f3: #2a78d6;
+  --f4: #1c5cab;
+  --f5: #104281;
+
   /* Estatus — fijos, nunca tematizados */
   --good: #0ca30c;
   --warning: #fab219;
@@ -31,6 +39,8 @@
   --critical: #d03b3b;
 }
 
+/* El prototipo va fijo en claro: <html data-theme="light"> desactiva este
+   bloque. Los tokens oscuros se quedan para cuando se quiera reactivar. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
@@ -52,6 +62,13 @@
     /* Mismos tonos, escalonados para superficie oscura */
     --s1: #3987e5;
     --s2: #d95926;
+
+    --f1: #184f95;
+    --f2: #256abf;
+    --f3: #3987e5;
+    --f4: #6da7ec;
+    --f5: #9ec5f4;
+
   }
 }
 
@@ -71,6 +88,12 @@
   --brand-bar: #ffffff;
   --s1: #3987e5;
   --s2: #d95926;
+
+  --f1: #184f95;
+  --f2: #256abf;
+  --f3: #3987e5;
+  --f4: #6da7ec;
+  --f5: #9ec5f4;
 }
 
 body {

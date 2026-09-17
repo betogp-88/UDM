@@ -22,6 +22,11 @@ export default {
         // Series de graficas — paleta validada
         s1: "var(--s1)",
         s2: "var(--s2)",
+        f1: "var(--f1)",
+        f2: "var(--f2)",
+        f3: "var(--f3)",
+        f4: "var(--f4)",
+        f5: "var(--f5)",
         // Estatus
         good: "var(--good)",
         warning: "var(--warning)",

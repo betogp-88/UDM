@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Tarjeta, Insignia, Etiqueta } from "@/components/ui";
+import { BarraMeta } from "@/components/BarraMeta";
 import { pesos, pct } from "@/lib/formato";
 import {
   SOCIOS,
@@ -12,6 +13,10 @@ import {
   cascadaMargen,
   INVERSIONISTAS,
   socioDeInversionista,
+  resumenMetas,
+  avanceDelAnio,
+  estadoMeta,
+  COLOR_META,
 } from "@/lib/demo/datos";
 
 export default function Socios() {
@@ -82,6 +87,47 @@ export default function Socios() {
             </li>
           ))}
         </ul>
+      </Tarjeta>
+
+      <Tarjeta
+        titulo="Metas del año"
+        descripcion="La marca vertical es el avance del calendario: a la izquierda va atrasado, a la derecha adelantado"
+      >
+        <div className="grid gap-6 lg:grid-cols-2">
+          {resumenMetas().map((m) => {
+            const estado = estadoMeta(m.avanceCaptacion);
+            return (
+              <div key={m.socio.id} className="min-w-0 space-y-3 rounded-lg bg-[var(--plane)] p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <Link href={`/socios/${m.socio.id}`} className="text-sm font-medium text-ink hover:underline">
+                    {m.socio.nombre}
+                  </Link>
+                  <span className="text-xs text-muted">
+                    {m.prospectosAbiertos} prospectos · {pesos(m.pipelineCaptacion)} ponderados
+                  </span>
+                </div>
+                <BarraMeta
+                  etiqueta="Captación"
+                  logrado={m.logradoCaptacion}
+                  meta={m.meta.captacion}
+                  avance={m.avanceCaptacion}
+                  esperado={avanceDelAnio()}
+                  estado={estado}
+                  color={COLOR_META[estado]}
+                />
+                <BarraMeta
+                  etiqueta="Colocación"
+                  logrado={m.logradoColocacion}
+                  meta={m.meta.colocacion}
+                  avance={m.avanceColocacion}
+                  esperado={avanceDelAnio()}
+                  estado={estadoMeta(m.avanceColocacion)}
+                  color={COLOR_META[estadoMeta(m.avanceColocacion)]}
+                />
+              </div>
+            );
+          })}
+        </div>
       </Tarjeta>
 
       <Tarjeta
@@ -166,9 +212,13 @@ export default function Socios() {
                   }`}
                 >
                   <td className="px-4 py-2.5 sm:px-2">
-                    <span className={r.socio.enTesoreria ? "text-muted" : "text-ink"}>
-                      {r.socio.nombre}
-                    </span>
+                    {r.socio.enTesoreria ? (
+                      <span className="text-muted">{r.socio.nombre}</span>
+                    ) : (
+                      <Link href={`/socios/${r.socio.id}`} className="text-ink hover:underline">
+                        {r.socio.nombre}
+                      </Link>
+                    )}
                   </td>
                   <td className="px-2 py-2.5 text-right tabular">{pct(r.socio.participacion, 0)}</td>
                   <td className="px-2 py-2.5 text-right tabular">

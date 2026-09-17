@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" data-theme="light">
       <body className="min-h-screen">
         <div className="no-imprimir bg-[var(--warning)] px-4 py-1.5 text-center text-xs font-medium text-[#3a2a00]">
           Datos de demostración — personas, montos y fechas ficticios

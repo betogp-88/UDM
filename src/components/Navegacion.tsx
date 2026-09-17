@@ -12,6 +12,7 @@ const RUTAS = [
   { href: "/calce", etiqueta: "Calce" },
   { href: "/tesoreria", etiqueta: "Tesorería" },
   { href: "/expedientes", etiqueta: "Expedientes" },
+  { href: "/prospectos", etiqueta: "Prospectos" },
   { href: "/socios", etiqueta: "Socios" },
 ];
 

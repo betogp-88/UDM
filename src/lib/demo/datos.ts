@@ -714,3 +714,158 @@ export function expedienteCredito(c: Credito): { requisitos: string[]; cumplidos
     cumplidos: requisitos.map((_, k) => completo || (k + semilla) % 5 !== 0),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* METAS POR SOCIO                                                     */
+/* ------------------------------------------------------------------ */
+
+export type Meta = { socioId: string; captacion: number; colocacion: number };
+
+/** Metas del ejercicio en curso. */
+export const METAS: Meta[] = [
+  { socioId: "soc-1", captacion: 12_000_000, colocacion: 14_000_000 },
+  { socioId: "soc-2", captacion: 10_000_000, colocacion: 12_000_000 },
+  { socioId: "soc-3", captacion: 8_000_000, colocacion: 8_000_000 },
+  { socioId: "soc-4", captacion: 8_000_000, colocacion: 8_000_000 },
+];
+
+/** Fraccion del año transcurrida. Es la vara contra la que se mide el avance. */
+export function avanceDelAnio(): number {
+  const inicio = new Date(HOY.getFullYear(), 0, 1);
+  const fin = new Date(HOY.getFullYear() + 1, 0, 1);
+  return (HOY.getTime() - inicio.getTime()) / (fin.getTime() - inicio.getTime());
+}
+
+export type EstadoMeta = "Adelantado" | "En línea" | "Atrasado";
+
+export function estadoMeta(avance: number): EstadoMeta {
+  const esperado = avanceDelAnio();
+  if (avance >= esperado + 0.08) return "Adelantado";
+  if (avance >= esperado - 0.05) return "En línea";
+  return "Atrasado";
+}
+
+export const COLOR_META: Record<EstadoMeta, "good" | "warning" | "critical"> = {
+  Adelantado: "good",
+  "En línea": "good",
+  Atrasado: "critical",
+};
+
+export function metaDe(socioId: string): Meta | undefined {
+  return METAS.find((m) => m.socioId === socioId);
+}
+
+/* ------------------------------------------------------------------ */
+/* CRM DE PROSPECTOS                                                   */
+/* ------------------------------------------------------------------ */
+
+export const ETAPAS = [
+  "Contacto inicial",
+  "En conversación",
+  "Propuesta enviada",
+  "Documentación",
+  "Cerrado",
+] as const;
+
+export type Etapa = (typeof ETAPAS)[number];
+
+export type Prospecto = {
+  id: string;
+  nombre: string;
+  tipo: "Inversionista" | "Crédito";
+  socioId: string;
+  etapa: Etapa;
+  monto: number;
+  probabilidad: number;
+  diasAlProximoContacto: number;
+  nota: string;
+};
+
+const PRO_BASE: Array<
+  [string, "Inversionista" | "Crédito", string, Etapa, number, number, number, string]
+> = [
+  ["Bufete Contable Ramírez y Asociados", "Inversionista", "soc-1", "Documentación", 2_500_000, 0.8, 2, "Falta constancia fiscal y contrato firmado"],
+  ["Ernesto Villalpando Sáenz", "Inversionista", "soc-1", "Propuesta enviada", 1_800_000, 0.6, 5, "Cotizado a 13.5% por 24 meses"],
+  ["Grupo Hotelero Piedra Blanca SA", "Crédito", "soc-1", "En conversación", 4_000_000, 0.4, 9, "Quiere ampliar habitaciones, sin estados financieros aún"],
+  ["Rosalinda Ontiveros Pech", "Inversionista", "soc-1", "Contacto inicial", 900_000, 0.2, 14, "Referida por su hermano, ya inversionista"],
+  ["Autopartes del Golfo SA de CV", "Crédito", "soc-1", "Documentación", 1_500_000, 0.75, 3, "Buró autorizado, falta pagaré"],
+
+  ["Fideicomiso Familiar Arriaga", "Inversionista", "soc-2", "Documentación", 3_500_000, 0.85, 1, "Solo falta la caratula bancaria"],
+  ["Manufacturas Precisión Norte SA", "Crédito", "soc-2", "Propuesta enviada", 2_800_000, 0.55, 6, "Cotizado a 24%, comparando con otra SOFOM"],
+  ["Silvia Cárdenas Nájera", "Inversionista", "soc-2", "En conversación", 1_200_000, 0.45, 8, "Vence su pagaré bancario en noviembre"],
+  ["Distribuidora Médica Peninsular", "Crédito", "soc-2", "Contacto inicial", 1_800_000, 0.2, 18, "Primer acercamiento en la expo"],
+
+  ["Colegio Particular San Andrés AC", "Inversionista", "soc-3", "Propuesta enviada", 2_000_000, 0.6, 4, "Junta de consejo el próximo martes"],
+  ["Refaccionaria El Volante SA", "Crédito", "soc-3", "En conversación", 1_100_000, 0.35, 11, "Necesita capital de trabajo para temporada"],
+  ["Armando Quiroz Betancourt", "Inversionista", "soc-3", "Contacto inicial", 700_000, 0.25, 21, "Contacto de golf, aún explorando"],
+
+  ["Inmobiliaria Cumbres del Valle SA", "Inversionista", "soc-4", "En conversación", 3_000_000, 0.5, 7, "Interesados si subimos a 14%"],
+  ["Transportadora Ruta Corta SA", "Crédito", "soc-4", "Documentación", 2_200_000, 0.7, 2, "Arrendamiento de dos unidades"],
+  ["Beatriz Alcántara Fuentes", "Inversionista", "soc-4", "Contacto inicial", 850_000, 0.15, 25, "Dejó datos en el sitio web"],
+];
+
+export const PROSPECTOS: Prospecto[] = PRO_BASE.map(
+  ([nombre, tipo, socioId, etapa, monto, probabilidad, dias, nota], i) => ({
+    id: `pro-${String(i + 1).padStart(2, "0")}`,
+    nombre,
+    tipo,
+    socioId,
+    etapa,
+    monto,
+    probabilidad,
+    diasAlProximoContacto: dias,
+    nota,
+  }),
+);
+
+export function prospectosDe(socioId: string): Prospecto[] {
+  return PROSPECTOS.filter((p) => p.socioId === socioId);
+}
+
+/** Suma de montos ponderada por probabilidad de cierre. */
+export function pipelinePonderado(items: Prospecto[]): number {
+  return items.reduce((s, p) => s + p.monto * p.probabilidad, 0);
+}
+
+export function embudo(items: Prospecto[] = PROSPECTOS) {
+  return ETAPAS.map((etapa) => {
+    const enEtapa = items.filter((p) => p.etapa === etapa);
+    return {
+      etapa,
+      cuenta: enEtapa.length,
+      monto: enEtapa.reduce((s, p) => s + p.monto, 0),
+    };
+  });
+}
+
+export type ResumenMeta = {
+  socio: Socio;
+  meta: Meta;
+  logradoCaptacion: number;
+  logradoColocacion: number;
+  avanceCaptacion: number;
+  avanceColocacion: number;
+  pipelineCaptacion: number;
+  prospectosAbiertos: number;
+};
+
+export function resumenMetas(): ResumenMeta[] {
+  const resumen = resumenSocios();
+  return METAS.map((meta) => {
+    const r = resumen.find((x) => x.socio.id === meta.socioId)!;
+    const prospectos = prospectosDe(meta.socioId);
+    const deInversion = prospectos.filter((p) => p.tipo === "Inversionista");
+    const logradoCaptacion = r.directo + r.indirecto;
+
+    return {
+      socio: r.socio,
+      meta,
+      logradoCaptacion,
+      logradoColocacion: r.carteraOriginada,
+      avanceCaptacion: logradoCaptacion / meta.captacion,
+      avanceColocacion: r.carteraOriginada / meta.colocacion,
+      pipelineCaptacion: pipelinePonderado(deInversion),
+      prospectosAbiertos: prospectos.filter((p) => p.etapa !== "Cerrado").length,
+    };
+  });
+}
