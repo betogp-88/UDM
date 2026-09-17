@@ -1,25 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { Tarjeta, Insignia } from "@/components/ui";
 import { pesos, pesosCent, pct, fecha } from "@/lib/formato";
 import { tablaInversion, tasaRetencion } from "@/lib/demo/calculos";
-import { SOCIOS, REQUISITOS_FISICA, REQUISITOS_MORAL } from "@/lib/demo/datos";
+import { CampoMonto, CampoTasa, SelectorPlazo } from "@/components/campos";
+import { SOCIOS, PROSPECTOS, REQUISITOS_FISICA, REQUISITOS_MORAL } from "@/lib/demo/datos";
 
 const PASOS = ["Datos", "Simulación", "Expediente", "Confirmar"];
 
-export default function Alta() {
+export default function PromoverPagina() {
+  return (
+    <Suspense fallback={null}>
+      <Promover />
+    </Suspense>
+  );
+}
+
+function Promover() {
+  const params = useSearchParams();
+  const prospecto = PROSPECTOS.find((p) => p.id === params.get("prospecto"));
+
   const [paso, setPaso] = useState(0);
 
-  const [nombre, setNombre] = useState("");
-  const [tipo, setTipo] = useState<"Física" | "Moral">("Física");
-  const [empresa, setEmpresa] = useState<"SOFOM" | "Arrendadora">("SOFOM");
-  const [socioId, setSocioId] = useState("");
+  const [nombre, setNombre] = useState(prospecto?.nombre ?? "");
+  const [representante, setRepresentante] = useState(prospecto?.representante ?? "");
+  const [tipo, setTipo] = useState<"Física" | "Moral">(prospecto?.tipoPersona ?? "Física");
+  const [socioId, setSocioId] = useState(prospecto?.socioId ?? "");
 
-  const [monto, setMonto] = useState(1_500_000);
-  const [tasa, setTasa] = useState(13);
-  const [plazo, setPlazo] = useState(18);
+  const [monto, setMonto] = useState(prospecto?.monto ?? 1_000_000);
+  const [tasa, setTasa] = useState((prospecto?.tasaEstimada ?? 0.12) * 100);
+  const [plazo, setPlazo] = useState(prospecto?.plazoEstimado ?? 12);
 
   const requisitos = tipo === "Física" ? REQUISITOS_FISICA : REQUISITOS_MORAL;
   const [marcados, setMarcados] = useState<Record<string, boolean>>({});
@@ -41,10 +54,13 @@ export default function Alta() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-semibold text-ink">Alta de inversionista</h2>
+        <h2 className="text-2xl font-semibold text-ink">
+          {prospecto ? `Promover a ${prospecto.nombre}` : "Promover a inversionista"}
+        </h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-2">
-          El expediente es bloqueante: sin los documentos completos, el sistema no permite registrar
-          el ingreso de los recursos.
+          {prospecto
+            ? "Los datos vienen del CRM. Aquí solo se confirman las condiciones y se integra el expediente."
+            : "El expediente es bloqueante: sin los documentos completos, el sistema no permite registrar el ingreso de los recursos."}
         </p>
       </header>
 
@@ -72,14 +88,6 @@ export default function Alta() {
       {paso === 0 ? (
         <Tarjeta titulo="Datos del inversionista">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Nombre o razón social">
-              <input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej. Comercializadora del Centro SA de CV"
-                className="w-full rounded-lg bg-[var(--plane)] px-3 py-2 text-sm text-ink ring-1 ring-[var(--hair)] outline-none focus:ring-2 focus:ring-[var(--brand)]"
-              />
-            </Campo>
             <Campo etiqueta="Tipo de persona">
               <Opciones
                 valor={tipo}
@@ -90,13 +98,28 @@ export default function Alta() {
                 }}
               />
             </Campo>
-            <Campo etiqueta="Empresa">
-              <Opciones
-                valor={empresa}
-                opciones={["SOFOM", "Arrendadora"] as const}
-                onChange={setEmpresa}
+            <Campo etiqueta={tipo === "Física" ? "Nombre completo" : "Razón social"}>
+              <input
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder={
+                  tipo === "Física"
+                    ? "Ej. María Fernanda Salazar Ibarra"
+                    : "Ej. Comercializadora del Centro SA de CV"
+                }
+                className="w-full rounded-lg bg-[var(--plane)] px-3 py-2 text-sm text-ink ring-1 ring-[var(--hair)] outline-none focus:ring-2 focus:ring-[var(--brand)]"
               />
             </Campo>
+            {tipo === "Moral" ? (
+              <Campo etiqueta="Representante legal">
+                <input
+                  value={representante}
+                  onChange={(e) => setRepresentante(e.target.value)}
+                  placeholder="Ej. Lic. Andrés Peña Rojas"
+                  className="w-full rounded-lg bg-[var(--plane)] px-3 py-2 text-sm text-ink ring-1 ring-[var(--hair)] outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                />
+              </Campo>
+            ) : null}
             <Campo etiqueta="¿Quién lo trajo?">
               <select
                 value={socioId}
@@ -119,9 +142,9 @@ export default function Alta() {
         <div className="grid gap-6 lg:grid-cols-5">
           <Tarjeta titulo="Condiciones" className="lg:col-span-2">
             <div className="space-y-5">
-              <Deslizador etiqueta="Monto" valor={monto} min={100_000} max={10_000_000} paso={50_000} formato={pesos} onChange={setMonto} />
-              <Deslizador etiqueta="Tasa de rendimiento" valor={tasa} min={10} max={18} paso={0.5} formato={(v) => `${v.toFixed(1)}%`} onChange={setTasa} />
-              <Deslizador etiqueta="Plazo" valor={plazo} min={6} max={48} paso={6} formato={(v) => `${v} meses`} onChange={setPlazo} />
+              <CampoMonto etiqueta="Monto" valor={monto} onChange={setMonto} />
+              <CampoTasa etiqueta="Tasa de rendimiento" valor={tasa} onChange={setTasa} />
+              <SelectorPlazo valor={plazo} onChange={setPlazo} />
             </div>
           </Tarjeta>
           <div className="min-w-0 space-y-4 lg:col-span-3">
@@ -197,7 +220,7 @@ export default function Alta() {
           <dl className="space-y-2.5 text-sm">
             <Renglon k="Inversionista" v={nombre} />
             <Renglon k="Tipo" v={`Persona ${tipo.toLowerCase()}`} />
-            <Renglon k="Empresa" v={empresa} />
+            {tipo === "Moral" ? <Renglon k="Representante legal" v={representante} /> : null}
             <Renglon
               k="Traído por"
               v={SOCIOS.find((s) => s.id === socioId)?.nombre ?? "Llegó directo"}
@@ -236,7 +259,7 @@ export default function Alta() {
           </button>
         ) : (
           <Link
-            href="/inversionistas"
+            href="/crm"
             className="rounded-lg px-4 py-2 text-sm text-ink-2 ring-1 ring-[var(--hair)] hover:text-ink"
           >
             Cancelar
@@ -294,41 +317,6 @@ function Opciones<T extends string>({
   );
 }
 
-function Deslizador({
-  etiqueta,
-  valor,
-  min,
-  max,
-  paso,
-  formato,
-  onChange,
-}: {
-  etiqueta: string;
-  valor: number;
-  min: number;
-  max: number;
-  paso: number;
-  formato: (v: number) => string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="flex items-baseline justify-between">
-        <span className="text-sm text-ink-2">{etiqueta}</span>
-        <span className="tabular text-sm font-semibold text-ink">{formato(valor)}</span>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={paso}
-        value={valor}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full accent-[var(--brand)]"
-      />
-    </label>
-  );
-}
 
 function Resumen({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (

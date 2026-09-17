@@ -1,62 +1,138 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import { Tarjeta, Insignia, Etiqueta } from "@/components/ui";
 import { ListaRequisitos } from "@/components/ListaRequisitos";
-import { pct } from "@/lib/formato";
 import {
-  INVERSIONISTAS,
-  requisitosDe,
-  estadoExpediente,
+  ENTIDADES,
+  CATEGORIAS_DOC,
+  CONSTITUCION,
+  documentosDe,
+  coberturaActas,
   REQUISITOS_FISICA,
   REQUISITOS_MORAL,
   REQUISITOS_CREDITO_FISICA,
   REQUISITOS_CREDITO_MORAL,
+  type Entidad,
+  type CategoriaDoc,
 } from "@/lib/demo/datos";
 
 export default function Expedientes() {
-  const filas = INVERSIONISTAS.map((i) => {
-    const reqs = requisitosDe(i.tipo);
-    const estado = estadoExpediente(i);
-    const completos = estado.filter(Boolean).length;
-    return {
-      inv: i,
-      reqs,
-      estado,
-      completos,
-      total: reqs.length,
-      faltantes: reqs.filter((_, k) => !estado[k]),
-    };
-  }).sort((a, b) => a.completos / a.total - b.completos / b.total);
+  const [entidad, setEntidad] = useState<Entidad>(ENTIDADES[0]);
+  const [categoria, setCategoria] = useState<CategoriaDoc>(CATEGORIAS_DOC[0]);
 
-  const incompletos = filas.filter((f) => f.completos < f.total);
+  const documentos = documentosDe(entidad, categoria);
+  const cobertura = coberturaActas(entidad);
+  const faltantes = cobertura.filter((c) => !c.tiene);
 
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-semibold text-ink">Expedientes</h2>
+        <h2 className="text-2xl font-semibold text-ink">Expediente corporativo</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-2">
-          El checklist es bloqueante: sin expediente completo, el sistema no permite registrar el
-          ingreso de recursos ni la ministración de un crédito.
+          Los papeles de las dos sociedades. El expediente de cada inversionista o cliente vive en
+          su propia ficha.
         </p>
       </header>
 
-      {incompletos.length > 0 ? (
-        <div className="rounded-xl bg-surface p-4 ring-1 ring-[var(--hair)]">
-          <Insignia estado="serious">
-            {incompletos.length} {incompletos.length === 1 ? "expediente" : "expedientes"} sin
-            integrar
-          </Insignia>
-          <ul className="mt-3 space-y-2">
-            {incompletos.map((f) => (
-              <li key={f.inv.id} className="text-sm">
-                <span className="text-ink">{f.inv.nombre}</span>
-                <span className="ml-2 text-xs text-muted">
-                  falta: {f.faltantes.join(" · ")}
+      <div className="inline-flex flex-wrap rounded-lg bg-surface p-1 ring-1 ring-[var(--hair)]">
+        {ENTIDADES.map((e) => (
+          <button
+            key={e}
+            type="button"
+            onClick={() => setEntidad(e)}
+            className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
+              entidad === e ? "bg-brand font-medium text-[var(--brand-ink)]" : "text-ink-2 hover:text-ink"
+            }`}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+
+      <Tarjeta
+        titulo="Actas de asamblea por ejercicio"
+        descripcion={`Desde la constitución en ${CONSTITUCION[entidad]}, debe haber al menos una por año`}
+      >
+        <ul className="flex flex-wrap gap-2">
+          {cobertura.map((c) => (
+            <li key={c.anio}>
+              <span
+                className={`flex h-14 w-16 flex-col items-center justify-center rounded-lg text-xs tabular ${
+                  c.tiene
+                    ? "bg-[var(--plane)] text-ink-2 ring-1 ring-[var(--hair)]"
+                    : "text-white"
+                }`}
+                style={c.tiene ? undefined : { background: "var(--critical)" }}
+              >
+                <span aria-hidden className="text-sm">
+                  {c.tiene ? "●" : "■"}
                 </span>
+                {c.anio}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4">
+          {faltantes.length === 0 ? (
+            <Insignia estado="good">Todos los ejercicios tienen acta</Insignia>
+          ) : (
+            <Insignia estado="critical">
+              Falta el acta de {faltantes.map((f) => f.anio).join(", ")}
+            </Insignia>
+          )}
+        </div>
+      </Tarjeta>
+
+      <Tarjeta titulo="Documentos">
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {CATEGORIAS_DOC.map((c) => {
+            const cuenta = documentosDe(entidad, c).length;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoria(c)}
+                className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  categoria === c
+                    ? "bg-brand font-medium text-[var(--brand-ink)]"
+                    : "bg-[var(--plane)] text-ink-2 ring-1 ring-[var(--hair)] hover:text-ink"
+                }`}
+              >
+                {c}
+                <span className="ml-1.5 text-xs opacity-60">{cuenta}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {documentos.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted">
+            Sin documentos en «{categoria}» para {entidad}.
+          </p>
+        ) : (
+          <ul className="divide-y divide-[var(--hair)]">
+            {documentos.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span className="min-w-0">
+                  <span className="block text-sm text-ink">{d.nombre}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span>{d.fecha}</span>
+                    {d.folio ? <Etiqueta>{d.folio}</Etiqueta> : null}
+                    {d.ejercicio ? <Etiqueta>Ejercicio {d.ejercicio}</Etiqueta> : null}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-md px-3 py-1.5 text-xs text-ink-2 ring-1 ring-[var(--hair)] hover:text-ink"
+                >
+                  Ver documento
+                </button>
               </li>
             ))}
           </ul>
-        </div>
-      ) : null}
+        )}
+      </Tarjeta>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Tarjeta
@@ -87,67 +163,6 @@ export default function Expedientes() {
           />
         </Tarjeta>
       </div>
-
-      <Tarjeta titulo="Avance por inversionista" descripcion="Los menos completos primero">
-        <div className="-mx-4 overflow-x-auto sm:mx-0">
-          <table className="w-full min-w-[620px] text-sm">
-            <thead>
-              <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
-                <th className="px-4 py-2 font-medium sm:px-2">Inversionista</th>
-                <th className="px-2 py-2 font-medium">Tipo</th>
-                <th className="px-2 py-2 font-medium">Avance</th>
-                <th className="px-2 py-2 text-right font-medium">Documentos</th>
-                <th className="px-2 py-2 font-medium">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((f) => {
-                const parte = f.completos / f.total;
-                const completo = f.completos === f.total;
-                return (
-                  <tr
-                    key={f.inv.id}
-                    className="border-b border-[var(--hair)] last:border-0 hover:bg-[var(--plane)]"
-                  >
-                    <td className="px-4 py-2.5 sm:px-2">
-                      <Link
-                        href={`/inversionistas/${f.inv.id}`}
-                        className="text-ink hover:underline"
-                      >
-                        {f.inv.nombre}
-                      </Link>
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <Etiqueta>{f.inv.tipo}</Etiqueta>
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-[var(--plane)]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${parte * 100}%`,
-                            background: completo ? "var(--good)" : "var(--serious)",
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-2 py-2.5 text-right tabular text-ink-2">
-                      {f.completos}/{f.total} · {pct(parte, 0)}
-                    </td>
-                    <td className="px-2 py-2.5">
-                      {completo ? (
-                        <Insignia estado="good">Completo</Insignia>
-                      ) : (
-                        <Insignia estado="serious">Bloqueado</Insignia>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Tarjeta>
     </div>
   );
 }

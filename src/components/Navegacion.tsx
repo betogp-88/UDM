@@ -4,21 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const RUTAS = [
-  { href: "/", etiqueta: "Panel" },
-  { href: "/inversionistas", etiqueta: "Inversionistas" },
+  { href: "/crm", etiqueta: "CRM" },
+  { href: "/", etiqueta: "Dashboard" },
   { href: "/simulador", etiqueta: "Simulador" },
   { href: "/cartera", etiqueta: "Cartera" },
   { href: "/calendario", etiqueta: "Calendario" },
+  { href: "/inversionistas", etiqueta: "Inversionistas" },
   { href: "/calce", etiqueta: "Calce" },
   { href: "/tesoreria", etiqueta: "Tesorería" },
   { href: "/expedientes", etiqueta: "Expedientes" },
-  { href: "/prospectos", etiqueta: "Prospectos" },
   { href: "/socios", etiqueta: "Socios" },
 ];
 
 export function Navegacion() {
   const ruta = usePathname();
-
   const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
 
   return (

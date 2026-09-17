@@ -10,8 +10,10 @@ import {
   cascadaMargen,
   resumenBuckets,
   alertas,
-  calce,
+  calceConProyeccion,
   concentracionCaptacion,
+  concentracionCartera,
+  UMBRAL_CONCENTRACION,
   INVERSIONISTAS,
   CREDITOS,
 } from "@/lib/demo/datos";
@@ -24,14 +26,17 @@ export default function Panel() {
   const spread = tasaActivaPromedio() - tasaPasivaPromedio();
   const buckets = resumenBuckets();
   const avisos = alertas();
-  const datosCalce = calce(12).map((m) => ({
+  const datosCalce = calceConProyeccion(12).map((m) => ({
     fecha: m.fecha.toISOString(),
     entradas: m.entradas,
     salidas: m.salidas,
     neto: m.neto,
+    proyectado: m.proyectado,
+    netoConProyeccion: m.netoConProyeccion,
   }));
   const concentracion = concentracionCaptacion();
   const topConcentracion = concentracion[0];
+  const topCartera = concentracionCartera()[0];
 
   return (
     <div className="space-y-6">
@@ -52,9 +57,9 @@ export default function Panel() {
           nota="Activa menos pasiva, ponderadas"
         />
         <KPI
-          etiqueta="Margen neto mensual"
+          etiqueta="Margen · ritmo mensual"
           valor={pesos(neto)}
-          nota="Después de gastos e incobrables"
+          nota="Al día de hoy, no es un mes cerrado"
           acento={neto > 0 ? "good" : "critical"}
         />
       </div>
@@ -62,7 +67,7 @@ export default function Panel() {
       <div className="grid gap-6 lg:grid-cols-5">
         <Tarjeta
           titulo="Cascada del margen"
-          descripcion="Del interés cobrado a lo que realmente queda, cada mes"
+          descripcion="Del interés cobrado a lo que realmente queda, al ritmo de hoy"
           className="lg:col-span-3"
         >
           <Cascada filas={cascada} />
@@ -138,36 +143,80 @@ export default function Panel() {
         </Tarjeta>
 
         <Tarjeta
-          titulo="Concentración de fondeo"
-          descripcion="Qué tanto depende la operación de un solo inversionista"
+          titulo="De quién depende nuestro dinero"
+          descripcion="Si este inversionista no renueva, hay que reponerlo"
           className="lg:col-span-2"
         >
-          <p className="text-3xl font-semibold text-ink">{pct(topConcentracion.participacion)}</p>
-          <p className="mt-1 text-sm text-ink-2">{topConcentracion.nombre}</p>
-          <p className="mt-3 text-xs text-muted">
-            Es el inversionista más grande. Si decidiera no renovar, hay que reponer{" "}
-            {pesos(topConcentracion.monto)}.
+          <p
+            className="text-3xl font-semibold"
+            style={{
+              color:
+                topConcentracion.participacion > UMBRAL_CONCENTRACION.fondeo
+                  ? "var(--critical)"
+                  : "var(--ink)",
+            }}
+          >
+            {pct(topConcentracion.participacion)}
           </p>
-
-          <ul className="mt-4 space-y-2 border-t border-[var(--hair)] pt-3">
-            {concentracion.slice(1).map((c) => (
-              <li key={c.nombre} className="flex items-baseline justify-between gap-3 text-xs">
-                <span className="min-w-0 truncate text-ink-2">{c.nombre}</span>
-                <span className="shrink-0 tabular text-muted">{pct(c.participacion)}</span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-3 text-xs text-muted">
-            Los cinco juntos son {pct(concentracion.reduce((s, c) => s + c.participacion, 0))} del
-            fondeo total.
+          <p className="mt-1 text-sm text-ink-2">{topConcentracion.nombre}</p>
+          <p className="mt-2 text-xs text-muted">
+            {pesos(topConcentracion.monto)} de {pesos(captado)}. El umbral de alerta está en{" "}
+            {pct(UMBRAL_CONCENTRACION.fondeo, 0)}.
           </p>
           <Link
             href="/calce"
             className="mt-4 inline-block text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
           >
-            Ver detalle de concentración
+            Ver los cinco más grandes
           </Link>
+        </Tarjeta>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        <Tarjeta
+          titulo="A quién se lo prestamos"
+          descripcion="Si este cliente deja de pagar, es lo que está en riesgo"
+          className="lg:col-span-2"
+        >
+          <p
+            className="text-3xl font-semibold"
+            style={{
+              color:
+                topCartera.participacion > UMBRAL_CONCENTRACION.cartera
+                  ? "var(--critical)"
+                  : "var(--ink)",
+            }}
+          >
+            {pct(topCartera.participacion)}
+          </p>
+          <p className="mt-1 text-sm text-ink-2">{topCartera.nombre}</p>
+          <p className="mt-2 text-xs text-muted">
+            {pesos(topCartera.monto)} de {pesos(colocado)}. El umbral de alerta está en{" "}
+            {pct(UMBRAL_CONCENTRACION.cartera, 0)}.
+          </p>
+          <Link
+            href="/calce"
+            className="mt-4 inline-block text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
+          >
+            Ver los cinco más grandes
+          </Link>
+        </Tarjeta>
+
+        <Tarjeta titulo="Los cinco mayores del fondeo" className="lg:col-span-3">
+          <ul className="space-y-2">
+            {concentracion.map((c) => (
+              <li key={c.nombre} className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-ink-2">{c.nombre}</span>
+                <span className="shrink-0 tabular text-xs text-muted">
+                  {pesos(c.monto)} · {pct(c.participacion)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 border-t border-[var(--hair)] pt-3 text-xs text-muted">
+            Los cinco juntos son {pct(concentracion.reduce((s, c) => s + c.participacion, 0))} del
+            fondeo total.
+          </p>
         </Tarjeta>
       </div>
     </div>

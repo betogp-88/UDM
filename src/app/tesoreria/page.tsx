@@ -4,7 +4,10 @@ import { sumarMeses } from "@/lib/formato";
 import {
   CUENTAS,
   TESORERIA,
-  GASTOS,
+  GRUPOS_GASTO,
+  gastosPorGrupo,
+  gastoTotal,
+  totalColocado,
   HOY,
   efectivoDisponible,
   totalTesoreria,
@@ -18,7 +21,10 @@ export default function Tesoreria() {
   const colocado = totalTesoreria();
   const rendimiento = rendimientoTesoreriaMensual();
   const retencion = retencionTesoreriaMensual();
-  const gastoTotal = GASTOS.reduce((s, g) => s + g.monto, 0);
+  const enCartera = totalColocado();
+  const disponible = efectivo + colocado;
+  const grupos = gastosPorGrupo();
+  const total = gastoTotal();
   const tasaPromedioTesoreria =
     TESORERIA.reduce((s, t) => s + t.monto * t.tasaAnual, 0) / colocado;
   const costoDeOportunidad = (tasaActivaPromedio() - tasaPromedioTesoreria) * colocado;
@@ -32,16 +38,41 @@ export default function Tesoreria() {
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Dato etiqueta="Efectivo en bancos" valor={pesos(efectivo)} nota={`${CUENTAS.length} cuentas`} />
+      {/* Primero el reparto grande: cuánto está trabajando en cartera y cuánto
+          está disponible. El desglose viene después. */}
+      <div className="grid gap-3 sm:grid-cols-2">
         <Dato
-          etiqueta="En instrumentos"
-          valor={pesos(colocado)}
-          nota={`${pct(tasaPromedioTesoreria)} promedio`}
+          etiqueta="Dinero en cartera"
+          valor={pesos(enCartera)}
+          nota={`Colocado en créditos y arrendamientos · ${pct(tasaActivaPromedio())}`}
         />
-        <Dato etiqueta="Rendimiento mensual" valor={pesos(rendimiento - retencion)} nota="Neto de retención" />
-        <Dato etiqueta="Gasto de operación" valor={pesos(gastoTotal)} nota="Mensual" />
+        <Dato
+          etiqueta="Dinero disponible"
+          valor={pesos(disponible)}
+          nota={`${pct(disponible / (enCartera + disponible), 1)} del total`}
+        />
       </div>
+
+      <Tarjeta titulo="Desglose del dinero disponible">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="min-w-0 rounded-lg bg-[var(--plane)] p-4">
+            <p className="text-xs text-ink-2">En bancos</p>
+            <p className="mt-1 truncate text-xl font-semibold text-ink">{pesos(efectivo)}</p>
+            <p className="mt-0.5 text-xs text-muted">{CUENTAS.length} cuentas · sin rendimiento</p>
+          </div>
+          <div className="min-w-0 rounded-lg bg-[var(--plane)] p-4">
+            <p className="text-xs text-ink-2">En instrumentos</p>
+            <p className="mt-1 truncate text-xl font-semibold text-ink">{pesos(colocado)}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {pct(tasaPromedioTesoreria)} promedio · {pesos(rendimiento - retencion)} al mes
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex h-2.5 gap-[2px] overflow-hidden rounded-full">
+          <span style={{ width: `${(efectivo / disponible) * 100}%`, background: "var(--f2)" }} />
+          <span style={{ width: `${(colocado / disponible) * 100}%`, background: "var(--s1)" }} />
+        </div>
+      </Tarjeta>
 
       <Tarjeta titulo="Cuentas bancarias" descripcion="Una por empresa">
         <ul className="divide-y divide-[var(--hair)]">
@@ -129,33 +160,50 @@ export default function Tesoreria() {
       </Tarjeta>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Tarjeta titulo="Gastos de operación" descripcion="Mensuales" className="lg:col-span-3">
-          <ul className="space-y-2.5">
-            {GASTOS.map((g) => (
-              <li key={g.categoria}>
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="text-ink-2">
-                    {g.categoria}
-                    {g.recurrente ? null : <span className="ml-2 text-xs text-muted">variable</span>}
+        <Tarjeta titulo="Gastos" descripcion="Mensuales" className="lg:col-span-3">
+          <div className="mb-5 flex items-baseline justify-between border-b border-[var(--hair)] pb-4">
+            <span className="text-sm font-semibold text-ink">Gasto total</span>
+            <span className="tabular text-xl font-semibold text-ink">{pesos(total)}</span>
+          </div>
+
+          <div className="space-y-5">
+            {grupos.map((g) => (
+              <div key={g.grupo}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-medium text-ink">{g.grupo}</span>
+                  <span className="shrink-0 tabular text-sm text-ink">
+                    {pesos(g.monto)}
+                    <span className="ml-2 text-xs text-muted">{pct(g.monto / total, 0)}</span>
                   </span>
-                  <span className="shrink-0 tabular text-ink">{pesos(g.monto)}</span>
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--plane)]">
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--plane)]">
                   <div
                     className="h-full rounded-full"
                     style={{
-                      width: `${(g.monto / gastoTotal) * 100}%`,
-                      background: g.recurrente ? "var(--s2)" : "var(--muted)",
+                      width: `${(g.monto / total) * 100}%`,
+                      background: `var(--f${GRUPOS_GASTO.indexOf(g.grupo) + 2})`,
                     }}
                   />
                 </div>
-              </li>
+                <ul className="mt-2 space-y-1">
+                  {g.items.map((i) => (
+                    <li
+                      key={i.categoria}
+                      className="flex items-baseline justify-between gap-3 text-xs"
+                    >
+                      <span className="min-w-0 truncate text-ink-2">{i.categoria}</span>
+                      <span className="shrink-0 tabular text-muted">{pesos(i.monto)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
-          <div className="mt-4 flex items-baseline justify-between border-t border-[var(--hair)] pt-3">
-            <span className="text-sm font-semibold text-ink">Total</span>
-            <span className="tabular text-sm font-semibold text-ink">{pesos(gastoTotal)}</span>
           </div>
+
+          <p className="mt-5 border-t border-[var(--hair)] pt-3 text-xs text-muted">
+            El gasto de referidos no es fijo: depende de cuánto se originó en el mes. Debe salir del
+            módulo de comisiones, no capturarse a mano.
+          </p>
         </Tarjeta>
 
         <Tarjeta

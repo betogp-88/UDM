@@ -1,113 +1,158 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Tarjeta } from "@/components/ui";
+import { CampoMonto, CampoTasa, SelectorPlazo } from "@/components/campos";
 import { pesos, pesosCent, pct, fecha } from "@/lib/formato";
 import { tablaInversion, tablaCredito, tasaRetencion } from "@/lib/demo/calculos";
 
 type Modo = "inversion" | "credito";
 
-/** Rangos de tasa con los que opera la casa hoy. */
-const RANGO_INVERSION = { min: 10, max: 18 };
-const RANGO_CREDITO = { min: 18, max: 35 };
-
 export default function Simulador() {
   const [modo, setModo] = useState<Modo>("inversion");
-  const [monto, setMonto] = useState(2_000_000);
-  const [tasa, setTasa] = useState(13);
-  const [plazo, setPlazo] = useState(18);
+  const [monto, setMonto] = useState(1_000_000);
+  const [tasa, setTasa] = useState(12);
+  const [plazo, setPlazo] = useState(12);
   const [gracia, setGracia] = useState(0);
+  const [hoja, setHoja] = useState(false);
 
   const inicio = useMemo(() => new Date(), []);
-  const rango = modo === "inversion" ? RANGO_INVERSION : RANGO_CREDITO;
 
-  /** Al cambiar de modo, la tasa entra al rango del nuevo producto. */
-  function cambiarModo(nuevo: Modo) {
-    const r = nuevo === "inversion" ? RANGO_INVERSION : RANGO_CREDITO;
-    setTasa((t) => Math.min(Math.max(t, r.min), r.max));
-    setModo(nuevo);
+  const flujosInv = tablaInversion({
+    capital: monto,
+    tasaAnual: tasa / 100,
+    plazoMeses: plazo,
+    fechaInicio: inicio,
+  });
+  const flujosCred = tablaCredito({
+    monto,
+    tasaAnual: tasa / 100,
+    plazoMeses: plazo,
+    mesesGracia: gracia,
+    fechaInicio: inicio,
+  });
+
+  if (hoja) {
+    return (
+      <Cotizacion
+        modo={modo}
+        monto={monto}
+        tasa={tasa}
+        plazo={plazo}
+        gracia={gracia}
+        inicio={inicio}
+        onVolver={() => setHoja(false)}
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
       <header>
         <h2 className="text-2xl font-semibold text-ink">Simulador</h2>
-        <p className="mt-1 text-sm text-ink-2">
+        <p className="mt-1 max-w-2xl text-sm text-ink-2">
           Cotiza antes de cerrar. Al firmar, esta misma tabla se convierte en el calendario de
           pagos del contrato — los números no cambian.
         </p>
       </header>
 
-      <div className="inline-flex rounded-lg bg-surface p-1 ring-1 ring-[var(--hair)]">
-        {(["inversion", "credito"] as Modo[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => cambiarModo(m)}
-            className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
-              modo === m ? "bg-brand text-[var(--brand-ink)]" : "text-ink-2 hover:text-ink"
-            }`}
-          >
-            {m === "inversion" ? "Inversionista" : "Crédito"}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-lg bg-surface p-1 ring-1 ring-[var(--hair)]">
+          {(["inversion", "credito"] as Modo[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setModo(m);
+                setTasa(m === "inversion" ? 12 : 24);
+              }}
+              className={`rounded-md px-4 py-1.5 text-sm transition-colors ${
+                modo === m ? "bg-brand text-[var(--brand-ink)]" : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {m === "inversion" ? "Inversionista" : "Crédito"}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setHoja(true)}
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-[var(--brand-ink)]"
+        >
+          Generar PDF
+        </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Tarjeta titulo="Parámetros" className="lg:col-span-2">
           <div className="space-y-5">
-            <Campo
+            <CampoMonto
               etiqueta={modo === "inversion" ? "Monto de inversión" : "Monto del crédito"}
               valor={monto}
-              min={100_000}
-              max={10_000_000}
-              paso={50_000}
-              formato={pesos}
               onChange={setMonto}
             />
-            <Campo
+            <CampoTasa
               etiqueta={modo === "inversion" ? "Tasa de rendimiento" : "Tasa de interés"}
               valor={tasa}
-              min={rango.min}
-              max={rango.max}
-              paso={0.5}
-              formato={(v) => `${v.toFixed(1)}%`}
               onChange={setTasa}
+              ayuda={modo === "credito" ? `Moratoria: ${pct((tasa / 100) * 2)}` : undefined}
             />
-            <Campo
-              etiqueta="Plazo"
-              valor={plazo}
-              min={6}
-              max={48}
-              paso={6}
-              formato={(v) => `${v} meses`}
-              onChange={setPlazo}
-            />
+            <SelectorPlazo valor={plazo} onChange={setPlazo} />
             {modo === "credito" ? (
-              <Campo
+              <SelectorPlazo
                 etiqueta="Gracia de capital"
                 valor={gracia}
-                min={0}
-                max={12}
-                paso={3}
-                formato={(v) => (v === 0 ? "Sin gracia" : `${v} meses`)}
+                opciones={[0, 3, 6, 9, 12]}
                 onChange={setGracia}
               />
             ) : null}
           </div>
         </Tarjeta>
 
-        <div className="min-w-0 lg:col-span-3">
+        <div className="min-w-0 space-y-4 lg:col-span-3">
           {modo === "inversion" ? (
-            <ResultadoInversion monto={monto} tasa={tasa / 100} plazo={plazo} inicio={inicio} />
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Resumen etiqueta="Rendimiento mensual" valor={pesosCent(flujosInv[0].neto)} />
+                <Resumen
+                  etiqueta="Rendimiento neto total"
+                  valor={pesos(flujosInv.reduce((s, f) => s + f.neto, 0))}
+                />
+                <Resumen
+                  etiqueta="Retención total"
+                  valor={pesos(flujosInv.reduce((s, f) => s + f.retencion, 0))}
+                />
+              </div>
+              <Tarjeta titulo="Calendario de pagos">
+                <p className="mb-3 text-xs text-muted">
+                  Retención sobre capital a {pct(tasaRetencion(inicio.getFullYear()), 2)} anual.
+                  Cambia sola en los pagos que caen en el siguiente año.
+                </p>
+                <TablaInversion flujos={flujosInv} />
+              </Tarjeta>
+            </>
           ) : (
-            <ResultadoCredito
-              monto={monto}
-              tasa={tasa / 100}
-              plazo={plazo}
-              gracia={gracia}
-              inicio={inicio}
-            />
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Resumen etiqueta="Mensualidad" valor={pesosCent(flujosCred.at(-1)!.pago)} />
+                <Resumen
+                  etiqueta="Interés total"
+                  valor={pesos(flujosCred.reduce((s, f) => s + f.interes, 0))}
+                />
+                <Resumen etiqueta="Tasa moratoria" valor={pct((tasa / 100) * 2)} />
+              </div>
+              <Tarjeta titulo="Tabla de amortización">
+                {gracia > 0 ? (
+                  <p className="mb-3 text-xs text-muted">
+                    Los primeros {gracia} meses solo pagan intereses. El capital se amortiza en los{" "}
+                    {plazo - gracia} restantes, por eso la mensualidad sube después.
+                  </p>
+                ) : null}
+                <TablaCredito flujos={flujosCred} />
+              </Tarjeta>
+            </>
           )}
         </div>
       </div>
@@ -115,137 +160,190 @@ export default function Simulador() {
   );
 }
 
-function ResultadoInversion({
-  monto,
-  tasa,
-  plazo,
-  inicio,
-}: {
-  monto: number;
-  tasa: number;
-  plazo: number;
-  inicio: Date;
-}) {
-  const flujos = tablaInversion({ capital: monto, tasaAnual: tasa, plazoMeses: plazo, fechaInicio: inicio });
-  const interesTotal = flujos.reduce((s, f) => s + f.interes, 0);
-  const retencionTotal = flujos.reduce((s, f) => s + f.retencion, 0);
-  const netoTotal = interesTotal - retencionTotal;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Resumen etiqueta="Rendimiento mensual" valor={pesosCent(flujos[0].neto)} />
-        <Resumen etiqueta="Rendimiento neto total" valor={pesos(netoTotal)} />
-        <Resumen etiqueta="Retención total" valor={pesos(retencionTotal)} />
-      </div>
-
-      <Tarjeta titulo="Calendario de pagos">
-        <p className="mb-3 text-xs text-muted">
-          Retención sobre capital a {pct(tasaRetencion(inicio.getFullYear()), 2)} anual. Cambia
-          automáticamente en los pagos que caen en el siguiente año.
-        </p>
-        <div className="-mx-4 max-h-[420px] overflow-auto sm:mx-0">
-          <table className="w-full min-w-[480px] text-sm">
-            <thead className="sticky top-0 bg-surface">
-              <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
-                <th className="px-4 py-2 font-medium sm:px-2">#</th>
-                <th className="px-2 py-2 font-medium">Fecha</th>
-                <th className="px-2 py-2 text-right font-medium">Rendimiento</th>
-                <th className="px-2 py-2 text-right font-medium">Retención</th>
-                <th className="px-2 py-2 text-right font-medium">Capital</th>
-                <th className="px-2 py-2 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody className="tabular text-ink-2">
-              {flujos.map((f) => (
-                <tr key={f.n} className="border-b border-[var(--hair)] last:border-0">
-                  <td className="px-4 py-2 sm:px-2">{f.n}</td>
-                  <td className="px-2 py-2">{fecha(f.fecha)}</td>
-                  <td className="px-2 py-2 text-right">{pesosCent(f.interes)}</td>
-                  <td className="px-2 py-2 text-right">{pesosCent(-f.retencion)}</td>
-                  <td className="px-2 py-2 text-right">{f.capital ? pesos(f.capital) : "—"}</td>
-                  <td className="px-2 py-2 text-right font-medium text-ink">{pesosCent(f.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Tarjeta>
-    </div>
-  );
-}
-
-function ResultadoCredito({
+/** Hoja membretada, lista para imprimir o guardar como PDF. */
+function Cotizacion({
+  modo,
   monto,
   tasa,
   plazo,
   gracia,
   inicio,
+  onVolver,
 }: {
+  modo: Modo;
   monto: number;
   tasa: number;
   plazo: number;
   gracia: number;
   inicio: Date;
+  onVolver: () => void;
 }) {
-  const flujos = tablaCredito({
+  const esInversion = modo === "inversion";
+  const flujosInv = tablaInversion({
+    capital: monto,
+    tasaAnual: tasa / 100,
+    plazoMeses: plazo,
+    fechaInicio: inicio,
+  });
+  const flujosCred = tablaCredito({
     monto,
-    tasaAnual: tasa,
+    tasaAnual: tasa / 100,
     plazoMeses: plazo,
     mesesGracia: gracia,
     fechaInicio: inicio,
   });
-  const interesTotal = flujos.reduce((s, f) => s + f.interes, 0);
-  const cuota = flujos[flujos.length - 1].pago;
-  const moratoria = tasa * 2;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Resumen etiqueta="Mensualidad" valor={pesosCent(cuota)} />
-        <Resumen etiqueta="Interés total" valor={pesos(interesTotal)} />
-        <Resumen etiqueta="Tasa moratoria" valor={pct(moratoria)} />
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <button
+          type="button"
+          onClick={onVolver}
+          className="text-xs text-muted hover:text-ink"
+        >
+          ← Volver al simulador
+        </button>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-[var(--brand-ink)]"
+        >
+          Imprimir o guardar PDF
+        </button>
       </div>
 
-      <Tarjeta titulo="Tabla de amortización">
-        {gracia > 0 ? (
-          <p className="mb-3 text-xs text-muted">
-            Durante los primeros {gracia} meses solo se pagan intereses. El capital se amortiza en
-            los {plazo - gracia} meses restantes, por eso la mensualidad sube después.
-          </p>
-        ) : null}
-        <div className="-mx-4 max-h-[420px] overflow-auto sm:mx-0">
-          <table className="w-full min-w-[520px] text-sm">
-            <thead className="sticky top-0 bg-surface">
-              <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
-                <th className="px-4 py-2 font-medium sm:px-2">#</th>
-                <th className="px-2 py-2 font-medium">Fecha</th>
-                <th className="px-2 py-2 text-right font-medium">Pago</th>
-                <th className="px-2 py-2 text-right font-medium">Interés</th>
-                <th className="px-2 py-2 text-right font-medium">Capital</th>
-                <th className="px-2 py-2 text-right font-medium">Saldo</th>
-              </tr>
-            </thead>
-            <tbody className="tabular text-ink-2">
-              {flujos.map((f) => (
-                <tr
-                  key={f.n}
-                  className={`border-b border-[var(--hair)] last:border-0 ${
-                    f.enGracia ? "bg-[var(--plane)]" : ""
-                  }`}
-                >
-                  <td className="px-4 py-2 sm:px-2">{f.n}</td>
-                  <td className="px-2 py-2">{fecha(f.fecha)}</td>
-                  <td className="px-2 py-2 text-right font-medium text-ink">{pesosCent(f.pago)}</td>
-                  <td className="px-2 py-2 text-right">{pesosCent(f.interes)}</td>
-                  <td className="px-2 py-2 text-right">{f.capital ? pesosCent(f.capital) : "—"}</td>
-                  <td className="px-2 py-2 text-right">{pesos(f.saldo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Tarjeta>
+      <article className="rounded-xl bg-surface p-5 ring-1 ring-[var(--hair)] sm:p-8 print:ring-0">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--hair)] pb-5">
+          <Image src="/logo.png" alt="Un Dígito Más" width={907} height={504} className="h-11 w-auto" />
+          <div className="text-right">
+            <p className="text-sm font-semibold text-ink">
+              {esInversion ? "Propuesta de inversión" : "Cotización de crédito"}
+            </p>
+            <p className="text-xs text-muted">{fecha(inicio)}</p>
+            <p className="text-xs text-muted">Un Dígito Más SOFOM</p>
+          </div>
+        </header>
+
+        <section className="grid gap-3 border-b border-[var(--hair)] py-5 sm:grid-cols-3">
+          <Cifra etiqueta={esInversion ? "Monto de inversión" : "Monto del crédito"} valor={pesos(monto)} />
+          <Cifra etiqueta={esInversion ? "Tasa de rendimiento" : "Tasa de interés"} valor={pct(tasa / 100)} />
+          <Cifra etiqueta="Plazo" valor={`${plazo} meses`} />
+        </section>
+
+        <section className="grid gap-3 border-b border-[var(--hair)] py-5 sm:grid-cols-3">
+          {esInversion ? (
+            <>
+              <Cifra etiqueta="Rendimiento neto mensual" valor={pesosCent(flujosInv[0].neto)} destacado />
+              <Cifra
+                etiqueta="Rendimiento neto total"
+                valor={pesos(flujosInv.reduce((s, f) => s + f.neto, 0))}
+              />
+              <Cifra etiqueta="Capital devuelto" valor={`${pesos(monto)} al vencimiento`} />
+            </>
+          ) : (
+            <>
+              <Cifra etiqueta="Mensualidad" valor={pesosCent(flujosCred.at(-1)!.pago)} destacado />
+              <Cifra
+                etiqueta="Interés total"
+                valor={pesos(flujosCred.reduce((s, f) => s + f.interes, 0))}
+              />
+              <Cifra etiqueta="Tasa moratoria" valor={pct((tasa / 100) * 2)} />
+            </>
+          )}
+        </section>
+
+        <section className="py-5">
+          <h3 className="mb-3 text-sm font-semibold text-ink">
+            {esInversion ? "Calendario de pagos" : "Tabla de amortización"}
+          </h3>
+          {esInversion ? <TablaInversion flujos={flujosInv} alto={false} /> : <TablaCredito flujos={flujosCred} alto={false} />}
+        </section>
+
+        <footer className="border-t border-[var(--hair)] pt-4 text-[11px] leading-relaxed text-muted">
+          {esInversion
+            ? "La retención de ISR se calcula sobre el capital a la tasa anual que fija la Ley de Ingresos del ejercicio, no sobre el rendimiento; por eso cambia al cruzar el año. "
+            : "La tasa moratoria es el doble de la ordinaria y corre por días sobre la mensualidad vencida. "}
+          Cotización informativa, sujeta a la integración del expediente y a aprobación. Documento de
+          demostración con datos ficticios.
+        </footer>
+      </article>
+    </div>
+  );
+}
+
+function TablaInversion({
+  flujos,
+  alto = true,
+}: {
+  flujos: ReturnType<typeof tablaInversion>;
+  alto?: boolean;
+}) {
+  return (
+    <div className={`-mx-4 overflow-auto px-4 sm:mx-0 sm:px-0 ${alto ? "max-h-[420px]" : ""}`}>
+      <table className="w-full min-w-[440px] text-sm">
+        <thead className={alto ? "sticky top-0 bg-surface" : ""}>
+          <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
+            <th className="py-2 font-medium">#</th>
+            <th className="py-2 font-medium">Fecha</th>
+            <th className="py-2 text-right font-medium">Rendimiento</th>
+            <th className="py-2 text-right font-medium">Retención</th>
+            <th className="py-2 text-right font-medium">Capital</th>
+            <th className="py-2 text-right font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody className="tabular text-ink-2">
+          {flujos.map((f) => (
+            <tr key={f.n} className="border-b border-[var(--hair)] last:border-0">
+              <td className="py-2">{f.n}</td>
+              <td className="py-2">{fecha(f.fecha)}</td>
+              <td className="py-2 text-right">{pesosCent(f.interes)}</td>
+              <td className="py-2 text-right">{pesosCent(-f.retencion)}</td>
+              <td className="py-2 text-right">{f.capital ? pesos(f.capital) : "—"}</td>
+              <td className="py-2 text-right font-medium text-ink">{pesosCent(f.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TablaCredito({
+  flujos,
+  alto = true,
+}: {
+  flujos: ReturnType<typeof tablaCredito>;
+  alto?: boolean;
+}) {
+  return (
+    <div className={`-mx-4 overflow-auto px-4 sm:mx-0 sm:px-0 ${alto ? "max-h-[420px]" : ""}`}>
+      <table className="w-full min-w-[460px] text-sm">
+        <thead className={alto ? "sticky top-0 bg-surface" : ""}>
+          <tr className="border-b border-[var(--hair)] text-left text-xs text-muted">
+            <th className="py-2 font-medium">#</th>
+            <th className="py-2 font-medium">Fecha</th>
+            <th className="py-2 text-right font-medium">Pago</th>
+            <th className="py-2 text-right font-medium">Interés</th>
+            <th className="py-2 text-right font-medium">Capital</th>
+            <th className="py-2 text-right font-medium">Saldo</th>
+          </tr>
+        </thead>
+        <tbody className="tabular text-ink-2">
+          {flujos.map((f) => (
+            <tr
+              key={f.n}
+              className={`border-b border-[var(--hair)] last:border-0 ${f.enGracia ? "bg-[var(--plane)]" : ""}`}
+            >
+              <td className="py-2">{f.n}</td>
+              <td className="py-2">{fecha(f.fecha)}</td>
+              <td className="py-2 text-right font-medium text-ink">{pesosCent(f.pago)}</td>
+              <td className="py-2 text-right">{pesosCent(f.interes)}</td>
+              <td className="py-2 text-right">{f.capital ? pesosCent(f.capital) : "—"}</td>
+              <td className="py-2 text-right">{pesos(f.saldo)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -259,38 +357,11 @@ function Resumen({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-function Campo({
-  etiqueta,
-  valor,
-  min,
-  max,
-  paso,
-  formato,
-  onChange,
-}: {
-  etiqueta: string;
-  valor: number;
-  min: number;
-  max: number;
-  paso: number;
-  formato: (v: number) => string;
-  onChange: (v: number) => void;
-}) {
+function Cifra({ etiqueta, valor, destacado }: { etiqueta: string; valor: string; destacado?: boolean }) {
   return (
-    <label className="block">
-      <span className="flex items-baseline justify-between">
-        <span className="text-sm text-ink-2">{etiqueta}</span>
-        <span className="tabular text-sm font-semibold text-ink">{formato(valor)}</span>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={paso}
-        value={valor}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full accent-[var(--brand)]"
-      />
-    </label>
+    <div className="min-w-0">
+      <p className="text-[11px] uppercase tracking-wider text-muted">{etiqueta}</p>
+      <p className={`mt-1 text-lg font-semibold ${destacado ? "text-ink" : "text-ink-2"}`}>{valor}</p>
+    </div>
   );
 }

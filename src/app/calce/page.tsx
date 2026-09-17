@@ -2,7 +2,7 @@ import { Tarjeta, Insignia } from "@/components/ui";
 import { GraficaCalce } from "@/components/GraficaCalce";
 import { pesos, pct, mesLargo } from "@/lib/formato";
 import {
-  calce,
+  calceConProyeccion,
   concentracionCaptacion,
   concentracionCartera,
   totalCaptado,
@@ -10,12 +10,14 @@ import {
 } from "@/lib/demo/datos";
 
 export default function Calce() {
-  const meses = calce(12);
+  const meses = calceConProyeccion(12);
   const datos = meses.map((m) => ({
     fecha: m.fecha.toISOString(),
     entradas: m.entradas,
     salidas: m.salidas,
     neto: m.neto,
+    proyectado: m.proyectado,
+    netoConProyeccion: m.netoConProyeccion,
   }));
 
   const negativos = meses.filter((m) => m.neto < 0);
@@ -62,13 +64,13 @@ export default function Calce() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Tarjeta
-          titulo="Concentración de fondeo"
+          titulo="De quién depende nuestro dinero"
           descripcion={`Cinco inversionistas más grandes sobre ${pesos(totalCaptado())}`}
         >
           <Barras items={concentracionCaptacion()} color="var(--s2)" />
         </Tarjeta>
         <Tarjeta
-          titulo="Concentración de cartera"
+          titulo="A quién se lo prestamos"
           descripcion={`Cinco créditos más grandes sobre ${pesos(totalColocado())}`}
         >
           <Barras items={concentracionCartera()} color="var(--s1)" />

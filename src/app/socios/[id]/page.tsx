@@ -1,25 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Tarjeta, Insignia, Etiqueta } from "@/components/ui";
-import { Embudo } from "@/components/Embudo";
-import { BarraMeta } from "@/components/BarraMeta";
-import { pesos, pct, fecha } from "@/lib/formato";
+import { pesos, pct, fecha, mesLargo, sumarMeses } from "@/lib/formato";
 import {
   SOCIOS,
   buscarSocio,
-  resumenSocios,
-  resumenMetas,
+  resumenCompromisos,
   prospectosDe,
-  pipelinePonderado,
-  embudo,
-  avanceDelAnio,
-  estadoMeta,
-  COLOR_META,
+  COMPROMISO_CAPTACION,
   INVERSIONISTAS,
   CREDITOS,
   socioDeInversionista,
   socioDeCredito,
   vencimientoInversion,
+  mensualidadCredito,
+  HOY,
 } from "@/lib/demo/datos";
 
 export function generateStaticParams() {
@@ -31,12 +26,8 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
   const socio = buscarSocio(id);
   if (!socio || socio.enTesoreria) notFound();
 
-  const r = resumenSocios().find((x) => x.socio.id === socio.id)!;
-  const m = resumenMetas().find((x) => x.socio.id === socio.id);
+  const r = resumenCompromisos().find((x) => x.socio.id === socio.id)!;
   const prospectos = prospectosDe(socio.id);
-  const deInversion = prospectos.filter((p) => p.tipo === "Inversionista");
-  const esperado = avanceDelAnio();
-
   const traidos = INVERSIONISTAS.filter((i) => socioDeInversionista(i)?.id === socio.id);
   const originados = CREDITOS.filter((c) => socioDeCredito(c)?.id === socio.id);
 
@@ -54,64 +45,70 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Dato etiqueta="Aportación" valor={pesos(socio.aportacion)} />
-        <Dato etiqueta="Retorno mensual" valor={pesos(r.retornoMensual)} nota="Rendimiento propio + margen" />
-        <Dato etiqueta="Fondeo aportado" valor={pesos(r.directo + r.indirecto)} nota="Propio y traído" />
+        <Dato etiqueta="Aportación de capital" valor={pesos(socio.aportacion)} />
+        <Dato etiqueta="Retorno por inversión" valor={pesos(r.retornoInversion)} nota="Mensual" />
+        <Dato etiqueta="Utilidad SOFOM" valor={pesos(r.utilidadSofom)} nota="Mensual" />
         <Dato
-          etiqueta="En el embudo"
-          valor={pesos(prospectos.reduce((s, p) => s + p.monto, 0))}
-          nota={`${prospectos.length} prospectos`}
+          etiqueta="Colocado"
+          valor={pesos(r.colocado)}
+          nota={`${originados.length} créditos originados`}
         />
       </div>
 
-      {m ? (
-        <Tarjeta titulo="Metas del año" descripcion="Contra el avance del calendario">
-          <div className="space-y-6">
-            <BarraMeta
-              etiqueta="Captación"
-              logrado={m.logradoCaptacion}
-              meta={m.meta.captacion}
-              avance={m.avanceCaptacion}
-              esperado={esperado}
-              estado={estadoMeta(m.avanceCaptacion)}
-              color={COLOR_META[estadoMeta(m.avanceCaptacion)]}
-            />
-            <BarraMeta
-              etiqueta="Colocación"
-              logrado={m.logradoColocacion}
-              meta={m.meta.colocacion}
-              avance={m.avanceColocacion}
-              esperado={esperado}
-              estado={estadoMeta(m.avanceColocacion)}
-              color={COLOR_META[estadoMeta(m.avanceColocacion)]}
-            />
-          </div>
+      <Tarjeta titulo="Compromiso de captación">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="text-sm text-ink-2">Avance</span>
+          <span className="tabular text-sm text-ink">
+            {pesos(r.invertido)}
+            <span className="text-muted"> de {pesos(COMPROMISO_CAPTACION)}</span>
+          </span>
+        </div>
+        <div className="mt-2 h-3 overflow-hidden rounded-full bg-[var(--plane)]">
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.min(r.avance, 1) * 100}%`,
+              background: r.avance >= 1 ? "var(--good)" : "var(--s1)",
+            }}
+          />
+        </div>
+        <div className="mt-2">
+          {r.avance >= 1 ? (
+            <Insignia estado="good">
+              Compromiso cumplido · {pct(r.avance, 0)}
+            </Insignia>
+          ) : (
+            <Insignia estado="warning">
+              {pct(r.avance, 0)} — le faltan {pesos(r.faltante)}
+            </Insignia>
+          )}
+        </div>
 
-          <div className="mt-5 rounded-lg bg-[var(--plane)] p-4">
-            <p className="text-sm text-ink">
-              Le faltan {pesos(Math.max(0, m.meta.captacion - m.logradoCaptacion))} de captación
-              para cerrar la meta.
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              Trae {pesos(m.pipelineCaptacion)} ponderados en prospectos de inversión. Si cierran
-              como están proyectados, {" "}
-              {m.pipelineCaptacion >= m.meta.captacion - m.logradoCaptacion
-                ? "alcanza la meta."
-                : `aún le faltarían ${pesos(m.meta.captacion - m.logradoCaptacion - m.pipelineCaptacion)}.`}
-            </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="min-w-0 rounded-lg bg-[var(--plane)] p-4">
+            <p className="text-xs text-ink-2">Directo · su propio capital</p>
+            <p className="mt-1 truncate text-lg font-semibold text-ink">{pesos(r.directo)}</p>
           </div>
-        </Tarjeta>
-      ) : null}
+          <div className="min-w-0 rounded-lg bg-[var(--plane)] p-4">
+            <p className="text-xs text-ink-2">Indirecto · lo que trajo</p>
+            <p className="mt-1 truncate text-lg font-semibold text-ink">{pesos(r.indirecto)}</p>
+          </div>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Tarjeta titulo="Embudo" descripcion="Sus prospectos por etapa" className="lg:col-span-2">
-          <Embudo etapas={embudo(prospectos)} />
+        {r.faltante > 0 ? (
           <p className="mt-4 border-t border-[var(--hair)] pt-3 text-xs text-muted">
-            {pesos(pipelinePonderado(deInversion))} ponderados solo de inversión.
+            Trae {pesos(r.pipelineInversion)} ponderados en prospectos de inversión.{" "}
+            {r.pipelineInversion >= r.faltante
+              ? "Si cierran como están proyectados, cumple el compromiso."
+              : `Aun cerrándolos, le faltarían ${pesos(r.faltante - r.pipelineInversion)}.`}
           </p>
-        </Tarjeta>
+        ) : null}
+      </Tarjeta>
 
-        <Tarjeta titulo="Prospectos" className="lg:col-span-3">
+      <Tarjeta titulo="Prospectos" descripcion={`${prospectos.length} en el CRM`}>
+        {prospectos.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted">Sin prospectos asignados.</p>
+        ) : (
           <ul className="divide-y divide-[var(--hair)]">
             {prospectos.map((p) => (
               <li key={p.id} className="py-3">
@@ -125,7 +122,7 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
                     <span className="ml-2 text-xs text-muted">{pct(p.probabilidad, 0)}</span>
                   </span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Insignia estado={p.etapa === "Documentación" ? "good" : "warning"}>
                     {p.etapa}
                   </Insignia>
@@ -137,37 +134,39 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
                     Contactar en {p.diasAlProximoContacto}{" "}
                     {p.diasAlProximoContacto === 1 ? "día" : "días"}
                   </span>
+                  {p.tipo === "Inversión" && p.mesesACierre ? (
+                    <span className="text-xs capitalize text-muted">
+                      entraría en {mesLargo(sumarMeses(HOY, p.mesesACierre))}
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-xs text-muted">{p.nota}</p>
               </li>
             ))}
           </ul>
-          <Link
-            href="/prospectos"
-            className="mt-4 inline-block text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
-          >
-            Ver todos los prospectos
-          </Link>
-        </Tarjeta>
-      </div>
+        )}
+        <Link
+          href="/crm"
+          className="mt-4 inline-block text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
+        >
+          Ver el CRM completo
+        </Link>
+      </Tarjeta>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Tarjeta titulo="Inversionistas" descripcion={`${traidos.length} contratos`}>
+        <Tarjeta titulo="Inversión" descripcion={`${traidos.length} contratos`}>
           <ul className="divide-y divide-[var(--hair)]">
             {traidos.map((i) => (
               <li key={i.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5">
                 <span className="min-w-0">
-                  <Link
-                    href={`/inversionistas/${i.id}`}
-                    className="text-sm text-ink hover:underline"
-                  >
+                  <Link href={`/inversionistas/${i.id}`} className="text-sm text-ink hover:underline">
                     {i.nombre}
                   </Link>
                   {i.id === socio.inversionPropiaId ? (
                     <span className="ml-2 text-xs text-muted">(su propio capital)</span>
                   ) : null}
                   <span className="block text-xs text-muted">
-                    Vence {fecha(vencimientoInversion(i))}
+                    Vence {fecha(vencimientoInversion(i))} · {pct(i.tasaAnual)}
                   </span>
                 </span>
                 <span className="shrink-0 tabular text-sm text-ink-2">{pesos(i.capital)}</span>
@@ -176,7 +175,7 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
           </ul>
         </Tarjeta>
 
-        <Tarjeta titulo="Cartera originada" descripcion={`${originados.length} créditos`}>
+        <Tarjeta titulo="Colocación" descripcion={`${originados.length} créditos`}>
           <ul className="divide-y divide-[var(--hair)]">
             {originados.map((c) => (
               <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5">
@@ -185,7 +184,8 @@ export default async function FichaSocio({ params }: { params: Promise<{ id: str
                     {c.cliente}
                   </Link>
                   <span className="block text-xs text-muted">
-                    {c.diasAtraso === 0 ? "Al corriente" : `${c.diasAtraso} días de atraso`}
+                    {c.diasAtraso === 0 ? "Al corriente" : `${c.diasAtraso} días de atraso`} ·{" "}
+                    {pesos(mensualidadCredito(c))} al mes
                   </span>
                 </span>
                 <span className="shrink-0 tabular text-sm text-ink-2">{pesos(c.saldo)}</span>

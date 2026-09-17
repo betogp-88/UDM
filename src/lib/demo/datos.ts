@@ -10,6 +10,8 @@
  */
 
 import { tablaInversion, tablaCredito, pagoFijo, tasaRetencion } from "@/lib/demo/calculos";
+
+export { tasaRetencion };
 import { sumarMeses } from "@/lib/formato";
 
 export const ES_DEMO = true;
@@ -217,7 +219,6 @@ export function resumenBuckets() {
 /* OPERACION                                                           */
 /* ------------------------------------------------------------------ */
 
-export const GASTO_OPERACION_MENSUAL = 148_000;
 export const ESTIMACION_INCOBRABLES_MENSUAL = 62_000;
 
 /* ------------------------------------------------------------------ */
@@ -260,14 +261,14 @@ export function cascadaMargen() {
   const cobrado = interesCobradoMensual();
   const pagado = interesPagadoMensual();
   const bruto = cobrado - pagado;
-  const despuesGastos = bruto - GASTO_OPERACION_MENSUAL;
+  const despuesGastos = bruto - gastoTotal();
   const neto = despuesGastos - ESTIMACION_INCOBRABLES_MENSUAL;
 
   return [
     { concepto: "Intereses cobrados", monto: cobrado, tipo: "suma" as const, acumulado: cobrado },
     { concepto: "Rendimientos pagados", monto: -pagado, tipo: "resta" as const, acumulado: bruto },
     { concepto: "Margen financiero bruto", monto: bruto, tipo: "subtotal" as const, acumulado: bruto },
-    { concepto: "Gastos de operación", monto: -GASTO_OPERACION_MENSUAL, tipo: "resta" as const, acumulado: despuesGastos },
+    { concepto: "Gastos de operación", monto: -gastoTotal(), tipo: "resta" as const, acumulado: despuesGastos },
     { concepto: "Estimación de incobrables", monto: -ESTIMACION_INCOBRABLES_MENSUAL, tipo: "resta" as const, acumulado: neto },
     { concepto: "Margen neto mensual", monto: neto, tipo: "total" as const, acumulado: neto },
   ];
@@ -304,7 +305,7 @@ export function calce(meses = 12): MesCalce[] {
         const retencion = (i.capital * tasaRetencion(fecha.getFullYear())) / 12;
         const capital = m === i.mesesRestantes ? i.capital : 0;
         return s + (interes - retencion) + capital;
-      }, 0) + GASTO_OPERACION_MENSUAL;
+      }, 0) + gastoTotal();
 
     return { fecha, entradas, salidas, neto: entradas - salidas };
   });
@@ -633,16 +634,38 @@ export function efectivoDisponible(): number {
   return CUENTAS.reduce((s, c) => s + c.saldo, 0);
 }
 
-export type Gasto = { categoria: string; monto: number; recurrente: boolean };
+export type GrupoGasto = "Administrativo" | "Operativo" | "Referidos";
+
+export const GRUPOS_GASTO: GrupoGasto[] = ["Administrativo", "Operativo", "Referidos"];
+
+export type Gasto = {
+  categoria: string;
+  grupo: GrupoGasto;
+  monto: number;
+  recurrente: boolean;
+};
 
 export const GASTOS: Gasto[] = [
-  { categoria: "Nómina y honorarios", monto: 82_000, recurrente: true },
-  { categoria: "Renta de oficina", monto: 24_000, recurrente: true },
-  { categoria: "Servicios y sistemas", monto: 14_500, recurrente: true },
-  { categoria: "Contabilidad y auditoría", monto: 12_000, recurrente: true },
-  { categoria: "Legal y notarial", monto: 9_500, recurrente: false },
-  { categoria: "Gastos de cobranza", monto: 6_000, recurrente: false },
+  { categoria: "Nómina y honorarios", grupo: "Administrativo", monto: 82_000, recurrente: true },
+  { categoria: "Renta de oficina", grupo: "Administrativo", monto: 24_000, recurrente: true },
+  { categoria: "Servicios y sistemas", grupo: "Administrativo", monto: 14_500, recurrente: true },
+  { categoria: "Contabilidad y auditoría", grupo: "Administrativo", monto: 12_000, recurrente: true },
+  { categoria: "Legal y notarial", grupo: "Operativo", monto: 9_500, recurrente: false },
+  { categoria: "Gestión de cobranza", grupo: "Operativo", monto: 6_000, recurrente: false },
+  { categoria: "Avalúos e investigación", grupo: "Operativo", monto: 4_500, recurrente: false },
+  { categoria: "Comisiones por referidos", grupo: "Referidos", monto: 31_000, recurrente: false },
 ];
+
+export function gastosPorGrupo() {
+  return GRUPOS_GASTO.map((grupo) => {
+    const items = GASTOS.filter((g) => g.grupo === grupo);
+    return { grupo, items, monto: items.reduce((s, g) => s + g.monto, 0) };
+  });
+}
+
+export function gastoTotal(): number {
+  return GASTOS.reduce((s, g) => s + g.monto, 0);
+}
 
 /* ------------------------------------------------------------------ */
 /* DETALLE DE CREDITO                                                  */
@@ -715,48 +738,25 @@ export function expedienteCredito(c: Credito): { requisitos: string[]; cumplidos
   };
 }
 
+
 /* ------------------------------------------------------------------ */
-/* METAS POR SOCIO                                                     */
+/* CONFIGURACION                                                       */
 /* ------------------------------------------------------------------ */
 
-export type Meta = { socioId: string; captacion: number; colocacion: number };
-
-/** Metas del ejercicio en curso. */
-export const METAS: Meta[] = [
-  { socioId: "soc-1", captacion: 12_000_000, colocacion: 14_000_000 },
-  { socioId: "soc-2", captacion: 10_000_000, colocacion: 12_000_000 },
-  { socioId: "soc-3", captacion: 8_000_000, colocacion: 8_000_000 },
-  { socioId: "soc-4", captacion: 8_000_000, colocacion: 8_000_000 },
-];
-
-/** Fraccion del año transcurrida. Es la vara contra la que se mide el avance. */
-export function avanceDelAnio(): number {
-  const inicio = new Date(HOY.getFullYear(), 0, 1);
-  const fin = new Date(HOY.getFullYear() + 1, 0, 1);
-  return (HOY.getTime() - inicio.getTime()) / (fin.getTime() - inicio.getTime());
-}
-
-export type EstadoMeta = "Adelantado" | "En línea" | "Atrasado";
-
-export function estadoMeta(avance: number): EstadoMeta {
-  const esperado = avanceDelAnio();
-  if (avance >= esperado + 0.08) return "Adelantado";
-  if (avance >= esperado - 0.05) return "En línea";
-  return "Atrasado";
-}
-
-export const COLOR_META: Record<EstadoMeta, "good" | "warning" | "critical"> = {
-  Adelantado: "good",
-  "En línea": "good",
-  Atrasado: "critical",
+/**
+ * Umbrales de concentracion. Arriba de esto la app avisa que alguien pesa
+ * demasiado. Configurables: son criterio del consejo, no del codigo.
+ */
+export const UMBRAL_CONCENTRACION = {
+  fondeo: 0.25,
+  cartera: 0.25,
 };
 
-export function metaDe(socioId: string): Meta | undefined {
-  return METAS.find((m) => m.socioId === socioId);
-}
+/** Compromiso de captacion de cada socio. Sin fecha limite. */
+export const COMPROMISO_CAPTACION = 6_000_000;
 
 /* ------------------------------------------------------------------ */
-/* CRM DE PROSPECTOS                                                   */
+/* CRM                                                                 */
 /* ------------------------------------------------------------------ */
 
 export const ETAPAS = [
@@ -769,60 +769,93 @@ export const ETAPAS = [
 
 export type Etapa = (typeof ETAPAS)[number];
 
+export type TipoProspecto = "Inversión" | "Crédito" | "Socio";
+
+export const TIPOS_PROSPECTO: TipoProspecto[] = ["Inversión", "Crédito", "Socio"];
+
 export type Prospecto = {
   id: string;
   nombre: string;
-  tipo: "Inversionista" | "Crédito";
-  socioId: string;
+  tipoPersona: TipoPersona;
+  /** Solo para persona moral. */
+  representante?: string;
+  tipo: TipoProspecto;
+  socioId: string | null;
   etapa: Etapa;
   monto: number;
   probabilidad: number;
   diasAlProximoContacto: number;
   nota: string;
+  /** Inversion: condiciones apalabradas y cuando entraria el dinero. */
+  tasaEstimada?: number;
+  plazoEstimado?: number;
+  mesesACierre?: number;
+  /** Socio: que porcentaje se negocia. */
+  porcentaje?: number;
 };
 
-const PRO_BASE: Array<
-  [string, "Inversionista" | "Crédito", string, Etapa, number, number, number, string]
-> = [
-  ["Bufete Contable Ramírez y Asociados", "Inversionista", "soc-1", "Documentación", 2_500_000, 0.8, 2, "Falta constancia fiscal y contrato firmado"],
-  ["Ernesto Villalpando Sáenz", "Inversionista", "soc-1", "Propuesta enviada", 1_800_000, 0.6, 5, "Cotizado a 13.5% por 24 meses"],
-  ["Grupo Hotelero Piedra Blanca SA", "Crédito", "soc-1", "En conversación", 4_000_000, 0.4, 9, "Quiere ampliar habitaciones, sin estados financieros aún"],
-  ["Rosalinda Ontiveros Pech", "Inversionista", "soc-1", "Contacto inicial", 900_000, 0.2, 14, "Referida por su hermano, ya inversionista"],
-  ["Autopartes del Golfo SA de CV", "Crédito", "soc-1", "Documentación", 1_500_000, 0.75, 3, "Buró autorizado, falta pagaré"],
+const PRO_BASE: Array<{
+  n: string;
+  tp: TipoPersona;
+  rep?: string;
+  t: TipoProspecto;
+  s: string | null;
+  e: Etapa;
+  m: number;
+  p: number;
+  d: number;
+  nota: string;
+  tasa?: number;
+  plazo?: number;
+  cierre?: number;
+  pct?: number;
+}> = [
+  { n: "Bufete Contable Ramírez y Asociados", tp: "Moral", rep: "Lic. Sergio Ramírez Ayala", t: "Inversión", s: "soc-1", e: "Documentación", m: 2_500_000, p: 0.8, d: 2, nota: "Falta constancia fiscal y contrato firmado", tasa: 0.135, plazo: 24, cierre: 1 },
+  { n: "Ernesto Villalpando Sáenz", tp: "Física", t: "Inversión", s: "soc-1", e: "Propuesta enviada", m: 1_800_000, p: 0.6, d: 5, nota: "Cotizado a 13.5% por 24 meses", tasa: 0.135, plazo: 24, cierre: 2 },
+  { n: "Grupo Hotelero Piedra Blanca SA", tp: "Moral", rep: "Ing. Claudia Berrones Lugo", t: "Crédito", s: "soc-1", e: "En conversación", m: 4_000_000, p: 0.4, d: 9, nota: "Quiere ampliar habitaciones, sin estados financieros aún", cierre: 3 },
+  { n: "Rosalinda Ontiveros Pech", tp: "Física", t: "Inversión", s: "soc-1", e: "Contacto inicial", m: 900_000, p: 0.2, d: 14, nota: "Referida por su hermano, ya inversionista", tasa: 0.125, plazo: 12, cierre: 4 },
+  { n: "Autopartes del Golfo SA de CV", tp: "Moral", rep: "C.P. Jorge Alanís Treviño", t: "Crédito", s: "soc-1", e: "Documentación", m: 1_500_000, p: 0.75, d: 3, nota: "Buró autorizado, falta pagaré", cierre: 1 },
 
-  ["Fideicomiso Familiar Arriaga", "Inversionista", "soc-2", "Documentación", 3_500_000, 0.85, 1, "Solo falta la caratula bancaria"],
-  ["Manufacturas Precisión Norte SA", "Crédito", "soc-2", "Propuesta enviada", 2_800_000, 0.55, 6, "Cotizado a 24%, comparando con otra SOFOM"],
-  ["Silvia Cárdenas Nájera", "Inversionista", "soc-2", "En conversación", 1_200_000, 0.45, 8, "Vence su pagaré bancario en noviembre"],
-  ["Distribuidora Médica Peninsular", "Crédito", "soc-2", "Contacto inicial", 1_800_000, 0.2, 18, "Primer acercamiento en la expo"],
+  { n: "Fideicomiso Familiar Arriaga", tp: "Moral", rep: "Lic. Mónica Arriaga del Río", t: "Inversión", s: "soc-2", e: "Documentación", m: 3_500_000, p: 0.85, d: 1, nota: "Solo falta la carátula bancaria", tasa: 0.14, plazo: 36, cierre: 1 },
+  { n: "Manufacturas Precisión Norte SA", tp: "Moral", rep: "Ing. Raúl Espinosa Cantú", t: "Crédito", s: "soc-2", e: "Propuesta enviada", m: 2_800_000, p: 0.55, d: 6, nota: "Cotizado a 24%, comparando con otra SOFOM", cierre: 2 },
+  { n: "Silvia Cárdenas Nájera", tp: "Física", t: "Inversión", s: "soc-2", e: "En conversación", m: 1_200_000, p: 0.45, d: 8, nota: "Vence su pagaré bancario en noviembre", tasa: 0.13, plazo: 18, cierre: 2 },
+  { n: "Distribuidora Médica Peninsular", tp: "Moral", rep: "Dra. Elena Pech Canul", t: "Crédito", s: "soc-2", e: "Contacto inicial", m: 1_800_000, p: 0.2, d: 18, nota: "Primer acercamiento en la expo", cierre: 5 },
 
-  ["Colegio Particular San Andrés AC", "Inversionista", "soc-3", "Propuesta enviada", 2_000_000, 0.6, 4, "Junta de consejo el próximo martes"],
-  ["Refaccionaria El Volante SA", "Crédito", "soc-3", "En conversación", 1_100_000, 0.35, 11, "Necesita capital de trabajo para temporada"],
-  ["Armando Quiroz Betancourt", "Inversionista", "soc-3", "Contacto inicial", 700_000, 0.25, 21, "Contacto de golf, aún explorando"],
+  { n: "Colegio Particular San Andrés AC", tp: "Moral", rep: "Mtro. Andrés Fuentes Lara", t: "Inversión", s: "soc-3", e: "Propuesta enviada", m: 2_000_000, p: 0.6, d: 4, nota: "Junta de consejo el próximo martes", tasa: 0.13, plazo: 24, cierre: 2 },
+  { n: "Refaccionaria El Volante SA", tp: "Moral", rep: "Sr. Gilberto Nava Ochoa", t: "Crédito", s: "soc-3", e: "En conversación", m: 1_100_000, p: 0.35, d: 11, nota: "Necesita capital de trabajo para temporada", cierre: 3 },
+  { n: "Armando Quiroz Betancourt", tp: "Física", t: "Inversión", s: "soc-3", e: "Contacto inicial", m: 700_000, p: 0.25, d: 21, nota: "Contacto de golf, aún explorando", tasa: 0.12, plazo: 12, cierre: 4 },
 
-  ["Inmobiliaria Cumbres del Valle SA", "Inversionista", "soc-4", "En conversación", 3_000_000, 0.5, 7, "Interesados si subimos a 14%"],
-  ["Transportadora Ruta Corta SA", "Crédito", "soc-4", "Documentación", 2_200_000, 0.7, 2, "Arrendamiento de dos unidades"],
-  ["Beatriz Alcántara Fuentes", "Inversionista", "soc-4", "Contacto inicial", 850_000, 0.15, 25, "Dejó datos en el sitio web"],
+  { n: "Inmobiliaria Cumbres del Valle SA", tp: "Moral", rep: "Arq. Daniela Cumbres Mata", t: "Inversión", s: "soc-4", e: "En conversación", m: 3_000_000, p: 0.5, d: 7, nota: "Interesados si subimos a 14%", tasa: 0.14, plazo: 24, cierre: 3 },
+  { n: "Transportadora Ruta Corta SA", tp: "Moral", rep: "Sr. Ismael Duarte Ponce", t: "Crédito", s: "soc-4", e: "Documentación", m: 2_200_000, p: 0.7, d: 2, nota: "Arrendamiento de dos unidades", cierre: 1 },
+  { n: "Beatriz Alcántara Fuentes", tp: "Física", t: "Inversión", s: "soc-4", e: "Contacto inicial", m: 850_000, p: 0.15, d: 25, nota: "Dejó datos en el sitio web", tasa: 0.12, plazo: 12, cierre: 6 },
+
+  { n: "Fernando Escalante Murguía", tp: "Física", t: "Socio", s: "soc-1", e: "Documentación", m: 1_200_000, p: 0.7, d: 3, nota: "Compra el 20% que está en tesorería. Due diligence en curso", pct: 0.2, cierre: 2 },
+  { n: "Capital Semilla del Centro SAPI", tp: "Moral", rep: "Lic. Paola Nieto Cárdenas", t: "Socio", s: "soc-2", e: "En conversación", m: 1_200_000, p: 0.25, d: 12, nota: "Interesados en el 20% de tesorería, piden auditoría externa", pct: 0.2, cierre: 6 },
 ];
 
-export const PROSPECTOS: Prospecto[] = PRO_BASE.map(
-  ([nombre, tipo, socioId, etapa, monto, probabilidad, dias, nota], i) => ({
-    id: `pro-${String(i + 1).padStart(2, "0")}`,
-    nombre,
-    tipo,
-    socioId,
-    etapa,
-    monto,
-    probabilidad,
-    diasAlProximoContacto: dias,
-    nota,
-  }),
-);
+export const PROSPECTOS: Prospecto[] = PRO_BASE.map((x, i) => ({
+  id: `pro-${String(i + 1).padStart(2, "0")}`,
+  nombre: x.n,
+  tipoPersona: x.tp,
+  representante: x.rep,
+  tipo: x.t,
+  socioId: x.s,
+  etapa: x.e,
+  monto: x.m,
+  probabilidad: x.p,
+  diasAlProximoContacto: x.d,
+  nota: x.nota,
+  tasaEstimada: x.tasa,
+  plazoEstimado: x.plazo,
+  mesesACierre: x.cierre,
+  porcentaje: x.pct,
+}));
 
 export function prospectosDe(socioId: string): Prospecto[] {
   return PROSPECTOS.filter((p) => p.socioId === socioId);
 }
 
-/** Suma de montos ponderada por probabilidad de cierre. */
+/** Suma ponderada por probabilidad de cierre. */
 export function pipelinePonderado(items: Prospecto[]): number {
   return items.reduce((s, p) => s + p.monto * p.probabilidad, 0);
 }
@@ -838,34 +871,155 @@ export function embudo(items: Prospecto[] = PROSPECTOS) {
   });
 }
 
-export type ResumenMeta = {
+/* ------------------------------------------------------------------ */
+/* COMPROMISO DE CAPTACION POR SOCIO                                   */
+/* ------------------------------------------------------------------ */
+
+export type ResumenCompromiso = {
   socio: Socio;
-  meta: Meta;
-  logradoCaptacion: number;
-  logradoColocacion: number;
-  avanceCaptacion: number;
-  avanceColocacion: number;
-  pipelineCaptacion: number;
-  prospectosAbiertos: number;
+  comprometido: number;
+  /** Lo que lleva: su capital propio mas lo que trajo de terceros. */
+  invertido: number;
+  directo: number;
+  indirecto: number;
+  avance: number;
+  faltante: number;
+  colocado: number;
+  retornoInversion: number;
+  utilidadSofom: number;
+  pipelineInversion: number;
 };
 
-export function resumenMetas(): ResumenMeta[] {
-  const resumen = resumenSocios();
-  return METAS.map((meta) => {
-    const r = resumen.find((x) => x.socio.id === meta.socioId)!;
-    const prospectos = prospectosDe(meta.socioId);
-    const deInversion = prospectos.filter((p) => p.tipo === "Inversionista");
-    const logradoCaptacion = r.directo + r.indirecto;
+export function resumenCompromisos(): ResumenCompromiso[] {
+  return resumenSocios()
+    .filter((r) => !r.socio.enTesoreria)
+    .map((r) => {
+      const invertido = r.directo + r.indirecto;
+      const deInversion = prospectosDe(r.socio.id).filter((p) => p.tipo === "Inversión");
+      return {
+        socio: r.socio,
+        comprometido: COMPROMISO_CAPTACION,
+        invertido,
+        directo: r.directo,
+        indirecto: r.indirecto,
+        avance: invertido / COMPROMISO_CAPTACION,
+        faltante: Math.max(0, COMPROMISO_CAPTACION - invertido),
+        colocado: r.carteraOriginada,
+        retornoInversion: r.rendimientoPropio,
+        utilidadSofom: r.participacionMargen,
+        pipelineInversion: pipelinePonderado(deInversion),
+      };
+    });
+}
 
-    return {
-      socio: r.socio,
-      meta,
-      logradoCaptacion,
-      logradoColocacion: r.carteraOriginada,
-      avanceCaptacion: logradoCaptacion / meta.captacion,
-      avanceColocacion: r.carteraOriginada / meta.colocacion,
-      pipelineCaptacion: pipelinePonderado(deInversion),
-      prospectosAbiertos: prospectos.filter((p) => p.etapa !== "Cerrado").length,
-    };
+/* ------------------------------------------------------------------ */
+/* EXPEDIENTE CORPORATIVO                                              */
+/* ------------------------------------------------------------------ */
+
+export const ENTIDADES = ["Un Dígito Más SOFOM", "Un Dígito Más Arrendadora"] as const;
+export type Entidad = (typeof ENTIDADES)[number];
+
+export const CATEGORIAS_DOC = [
+  "Acta constitutiva",
+  "Actas de asamblea",
+  "Contratos privados",
+  "Estados bancarios",
+  "Otros",
+] as const;
+export type CategoriaDoc = (typeof CATEGORIAS_DOC)[number];
+
+export type DocumentoCorporativo = {
+  id: string;
+  entidad: Entidad;
+  categoria: CategoriaDoc;
+  nombre: string;
+  ejercicio?: number;
+  fecha: string;
+  folio?: string;
+};
+
+/** Año de constitución de cada sociedad: desde ahí se exigen actas. */
+export const CONSTITUCION: Record<Entidad, number> = {
+  "Un Dígito Más SOFOM": 2021,
+  "Un Dígito Más Arrendadora": 2023,
+};
+
+const D = (
+  entidad: Entidad,
+  categoria: CategoriaDoc,
+  nombre: string,
+  fecha: string,
+  ejercicio?: number,
+  folio?: string,
+): Omit<DocumentoCorporativo, "id"> => ({ entidad, categoria, nombre, fecha, ejercicio, folio });
+
+export const DOCUMENTOS_CORPORATIVOS: DocumentoCorporativo[] = [
+  D("Un Dígito Más SOFOM", "Acta constitutiva", "Escritura constitutiva", "14 mar 2021", 2021, "Esc. 45,231"),
+  D("Un Dígito Más SOFOM", "Acta constitutiva", "Inscripción en el Registro Público de Comercio", "2 abr 2021", 2021),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea ordinaria anual", "28 abr 2021", 2021, "Acta 01/2021"),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea ordinaria anual", "26 abr 2022", 2022, "Acta 01/2022"),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea ordinaria anual", "25 abr 2023", 2023, "Acta 01/2023"),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea extraordinaria — aumento de capital", "12 sep 2023", 2023, "Acta 02/2023"),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea ordinaria anual", "23 abr 2025", 2025, "Acta 01/2025"),
+  D("Un Dígito Más SOFOM", "Actas de asamblea", "Asamblea ordinaria anual", "21 abr 2026", 2026, "Acta 01/2026"),
+  D("Un Dígito Más SOFOM", "Contratos privados", "Contrato marco de inversión — formato vigente", "10 ene 2026"),
+  D("Un Dígito Más SOFOM", "Contratos privados", "Contrato de crédito simple — formato vigente", "10 ene 2026"),
+  D("Un Dígito Más SOFOM", "Contratos privados", "Convenio de confidencialidad con proveedor de sistemas", "3 jun 2025"),
+  D("Un Dígito Más SOFOM", "Estados bancarios", "BBVA — estado de cuenta agosto 2026", "31 ago 2026", 2026),
+  D("Un Dígito Más SOFOM", "Estados bancarios", "BBVA — estado de cuenta julio 2026", "31 jul 2026", 2026),
+  D("Un Dígito Más SOFOM", "Otros", "Registro ante CONDUSEF (SIPRES)", "18 may 2021"),
+  D("Un Dígito Más SOFOM", "Otros", "Manual de prevención de lavado de dinero", "15 feb 2026"),
+
+  D("Un Dígito Más Arrendadora", "Acta constitutiva", "Escritura constitutiva", "7 feb 2023", 2023, "Esc. 51,908"),
+  D("Un Dígito Más Arrendadora", "Actas de asamblea", "Asamblea ordinaria anual", "27 abr 2023", 2023, "Acta 01/2023"),
+  D("Un Dígito Más Arrendadora", "Actas de asamblea", "Asamblea ordinaria anual", "24 abr 2024", 2024, "Acta 01/2024"),
+  D("Un Dígito Más Arrendadora", "Actas de asamblea", "Asamblea ordinaria anual", "22 abr 2026", 2026, "Acta 01/2026"),
+  D("Un Dígito Más Arrendadora", "Contratos privados", "Contrato de arrendamiento puro — formato vigente", "10 ene 2026"),
+  D("Un Dígito Más Arrendadora", "Contratos privados", "Contrato de arrendamiento financiero — formato vigente", "10 ene 2026"),
+  D("Un Dígito Más Arrendadora", "Estados bancarios", "Banorte — estado de cuenta agosto 2026", "31 ago 2026", 2026),
+  D("Un Dígito Más Arrendadora", "Otros", "Póliza de seguro de flota", "1 mar 2026"),
+].map((d, i) => ({ ...d, id: `doc-${String(i + 1).padStart(2, "0")}` }));
+
+export function documentosDe(entidad: Entidad, categoria?: CategoriaDoc) {
+  return DOCUMENTOS_CORPORATIVOS.filter(
+    (d) => d.entidad === entidad && (!categoria || d.categoria === categoria),
+  );
+}
+
+/** Ejercicios con y sin acta de asamblea, desde la constitución. */
+export function coberturaActas(entidad: Entidad) {
+  const desde = CONSTITUCION[entidad];
+  const hasta = HOY.getFullYear();
+  const conActa = new Set(
+    documentosDe(entidad, "Actas de asamblea").map((d) => d.ejercicio),
+  );
+  return Array.from({ length: hasta - desde + 1 }, (_, k) => {
+    const anio = desde + k;
+    return { anio, tiene: conActa.has(anio) };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* CALCE CON PROYECCION DEL CRM                                        */
+/* ------------------------------------------------------------------ */
+
+export type MesCalceProyectado = MesCalce & {
+  /** Capital de prospectos de inversion, ponderado por probabilidad. */
+  proyectado: number;
+  netoConProyeccion: number;
+};
+
+/**
+ * Al calce contratado se le suma lo apalabrado en el CRM, ponderado por
+ * probabilidad. Va en su propia banda: dinero prometido no es dinero firmado.
+ */
+export function calceConProyeccion(meses = 12): MesCalceProyectado[] {
+  return calce(meses).map((m, k) => {
+    const mes = k + 1;
+    const proyectado = PROSPECTOS.filter(
+      (p) => p.tipo === "Inversión" && p.mesesACierre === mes,
+    ).reduce((s, p) => s + p.monto * p.probabilidad, 0);
+
+    return { ...m, proyectado, netoConProyeccion: m.neto + proyectado };
   });
 }
