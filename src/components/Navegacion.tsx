@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 const RUTAS = [
   { href: "/", etiqueta: "Dashboard" },
-  { href: "/simulador", etiqueta: "Simulador" },
   { href: "/cartera", etiqueta: "Cartera" },
+  { href: "/simulador", etiqueta: "Simulador" },
   { href: "/calendario", etiqueta: "Calendario" },
   { href: "/crm", etiqueta: "CRM" },
   { href: "/inversionistas", etiqueta: "Inversionistas" },
