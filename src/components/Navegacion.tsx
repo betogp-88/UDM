@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const RUTAS = [
-  { href: "/crm", etiqueta: "CRM" },
   { href: "/", etiqueta: "Dashboard" },
   { href: "/simulador", etiqueta: "Simulador" },
   { href: "/cartera", etiqueta: "Cartera" },
   { href: "/calendario", etiqueta: "Calendario" },
+  { href: "/crm", etiqueta: "CRM" },
   { href: "/inversionistas", etiqueta: "Inversionistas" },
   { href: "/calce", etiqueta: "Calce" },
   { href: "/tesoreria", etiqueta: "Tesorería" },
